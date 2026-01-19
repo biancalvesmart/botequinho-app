@@ -29,5 +29,3 @@ O app foi construído utilizando tecnologias modernas de front-end para garantir
 2. Configure sua chave do Gemini em `.env.local`.
 3. Inicie o servidor: `npm run dev`.
 
----
-Desenvolvido por **Bianca Alves**.
