@@ -4,10 +4,6 @@ import { AppRoute, GameState, FinancialEvent, PlayerData, Pot } from './types';
 import { SESSION_CODE, INGREDIENTS, RECIPES } from './constants';
 import { Home, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-// Firebase Imports
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, update, push, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
 // Components
 import Lobby from './components/Lobby';
 import GameHome from './components/Home';
@@ -15,20 +11,7 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCozcm8f28V5b3eQz7uqFy97YjsIN_FdLg",
-  authDomain: "botequinho-4698c.firebaseapp.com",
-  databaseURL: "https://botequinho-4698c-default-rtdb.firebaseio.com",
-  projectId: "botequinho-4698c",
-  storageBucket: "botequinho-4698c.firebasestorage.app",
-  messagingSenderId: "385738452580",
-  appId: "1:385738452580:web:a608ecc14f8b2f2687f971"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const STORAGE_KEY = 'botequinho_state_v3';
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
@@ -36,11 +19,15 @@ const App: React.FC = () => {
   // Tab-specific identity
   const [localName, setLocalName] = useState<string>(() => sessionStorage.getItem('local_player_name') || '');
 
-  // Local state mirrored from Firebase
-  const [gameState, setGameState] = useState<GameState>({
-    isStarted: false,
-    players: [],
-    financialLog: []
+  // Global game state (Players array + Table Log)
+  const [gameState, setGameState] = useState<GameState>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+    return {
+      isStarted: false,
+      players: [],
+      financialLog: []
+    };
   });
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
@@ -51,39 +38,45 @@ const App: React.FC = () => {
     [gameState.players, localName]
   );
 
-  // Sync with Firebase on mount
+  // Write to disk
+  const syncToDisk = useCallback((newState: GameState) => {
+    const currentDisk = localStorage.getItem(STORAGE_KEY);
+    const nextString = JSON.stringify(newState);
+    if (currentDisk !== nextString) {
+      localStorage.setItem(STORAGE_KEY, nextString);
+    }
+  }, []);
+
   useEffect(() => {
-    const gameRef = ref(db, `matches/${SESSION_CODE}`);
-    
-    const unsubscribe = onValue(gameRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        // Firebase stores arrays as objects if they have gaps, ensure we have an array
-        const sanitizedPlayers = data.players ? Object.values(data.players) as PlayerData[] : [];
-        const sanitizedLog = data.financialLog ? Object.values(data.financialLog) as FinancialEvent[] : [];
-        
-        setGameState({
-          isStarted: data.isStarted || false,
-          players: sanitizedPlayers,
-          financialLog: sanitizedLog.sort((a, b) => b.timestamp - a.timestamp)
+    syncToDisk(gameState);
+  }, [gameState, syncToDisk]);
+
+  // Sync from other tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        const parsed = JSON.parse(e.newValue);
+        setGameState(prev => {
+          if (JSON.stringify(prev) === e.newValue) return prev;
+          if (parsed.isStarted && !prev.isStarted) setRoute(AppRoute.HOME);
+          return parsed;
         });
-
-        if (data.isStarted && route === AppRoute.LOBBY) {
-          setRoute(AppRoute.HOME);
-        }
       }
-    });
-
-    return () => unsubscribe();
-  }, [route]);
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const notify = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleJoin = async (name: string) => {
-    if (gameState.players.length >= 4 && !gameState.players.find(p => p.name === name)) {
+  const handleJoin = (name: string) => {
+    const rawDisk = localStorage.getItem(STORAGE_KEY);
+    const diskState: GameState = rawDisk ? JSON.parse(rawDisk) : gameState;
+
+    if (diskState.players.length >= 4 && !diskState.players.find(p => p.name === name)) {
       notify("Mesa cheia!", "error");
       return;
     }
@@ -91,70 +84,105 @@ const App: React.FC = () => {
     setLocalName(name);
     sessionStorage.setItem('local_player_name', name);
     
-    const playerExists = gameState.players.find((p: PlayerData) => p.name === name);
-    if (playerExists) return;
+    setGameState(prev => {
+      // Re-fetch disk to be safe and merge
+      const diskData = localStorage.getItem(STORAGE_KEY);
+      const latestDisk: GameState = diskData ? JSON.parse(diskData) : { isStarted: false, players: [], financialLog: [] };
+      const playerExists = latestDisk.players.find((p: PlayerData) => p.name === name);
+      
+      if (playerExists) return { ...latestDisk };
 
-    const newPlayer: PlayerData = {
-      name,
-      coins: 0,
-      inventory: [],
-      pots: [
-        { id: 0, recipeCode: null, startTime: null },
-        { id: 1, recipeCode: null, startTime: null }
-      ],
-      hasTransactedThisRound: false
-    };
+      const newPlayer: PlayerData = {
+        name,
+        coins: 0, // Initial balance fix: start with 0 coins
+        inventory: [],
+        pots: [
+          { id: 0, recipeCode: null, startTime: null },
+          { id: 1, recipeCode: null, startTime: null }
+        ],
+        hasTransactedThisRound: false
+      };
 
-    // Use name as a sub-key for easier targeted updates
-    await set(ref(db, `matches/${SESSION_CODE}/players/${name}`), newPlayer);
+      const newState: GameState = {
+        ...latestDisk,
+        players: [...latestDisk.players, newPlayer]
+      };
+      
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+      return newState;
+    });
     notify(`Bem-vindo, ${name}!`);
   };
 
-  const handleStartMatch = async () => {
-    await update(ref(db, `matches/${SESSION_CODE}`), { isStarted: true });
+  const handleStartMatch = () => {
+    setGameState(prev => {
+      const newState = { ...prev, isStarted: true };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+      return newState;
+    });
     setRoute(AppRoute.HOME);
   };
 
-  const handleResetSession = async () => {
-    await set(ref(db, `matches/${SESSION_CODE}`), null);
+  const handleResetSession = () => {
+    localStorage.removeItem(STORAGE_KEY);
     sessionStorage.removeItem('local_player_name');
     window.location.reload();
   };
 
-  const logTransaction = async (description: string, amount: number, type: 'gain' | 'loss') => {
-    const newLogRef = push(child(ref(db), `matches/${SESSION_CODE}/financialLog`));
-    await set(newLogRef, {
-      id: newLogRef.key,
-      type,
-      amount: Math.abs(amount),
-      description: `${localName}: ${description}`,
-      timestamp: Date.now()
+  // Helper to update specific player data
+  const updatePlayerData = useCallback((name: string, updater: (p: PlayerData) => PlayerData, description?: string, amount?: number, type?: 'gain' | 'loss') => {
+    setGameState(prev => {
+      const playerIdx = prev.players.findIndex(p => p.name === name);
+      if (playerIdx === -1) return prev;
+
+      const newPlayers = [...prev.players];
+      newPlayers[playerIdx] = updater(newPlayers[playerIdx]);
+
+      const newLog = [...prev.financialLog];
+      if (description && amount !== undefined) {
+        newLog.unshift({
+          id: Math.random().toString(36).substr(2, 9),
+          type: type || (amount >= 0 ? 'gain' : 'loss'),
+          amount: Math.abs(amount),
+          description: `${name}: ${description}`,
+          timestamp: Date.now()
+        });
+      }
+
+      return {
+        ...prev,
+        players: newPlayers,
+        financialLog: newLog.slice(0, 50)
+      };
     });
+  }, []);
+
+  const updateBalance = (amount: number, description: string) => {
+    updatePlayerData(localName, p => ({
+      ...p,
+      coins: Math.max(0, p.coins + amount)
+    }), description, amount);
   };
 
-  const updateBalance = async (amount: number, description: string) => {
-    if (!currentPlayer) return;
-    const newBalance = Math.max(0, currentPlayer.coins + amount);
-    await update(ref(db, `matches/${SESSION_CODE}/players/${localName}`), { coins: newBalance });
-    await logTransaction(description, amount, amount >= 0 ? 'gain' : 'loss');
-  };
-
-  const addItemByCode = async (code: string) => {
-    if (!currentPlayer) return false;
+  const addItemByCode = (code: string) => {
     const ingredient = INGREDIENTS.find(i => i.code === code);
     const recipe = RECIPES.find(r => r.code === code);
 
     if (ingredient) {
-      const newInventory = [...(currentPlayer.inventory || []), code];
-      await update(ref(db, `matches/${SESSION_CODE}/players/${localName}`), { inventory: newInventory });
+      updatePlayerData(localName, p => ({
+        ...p,
+        inventory: [...p.inventory, code]
+      }));
       notify(`Item: ${ingredient.name}`);
       return true;
     } else if (recipe) {
-      const emptyPotIdx = currentPlayer.pots.findIndex(pot => pot.recipeCode === null);
-      if (emptyPotIdx !== -1) {
-        const newPots = [...currentPlayer.pots];
-        newPots[emptyPotIdx] = { ...newPots[emptyPotIdx], recipeCode: code, startTime: Date.now() };
-        await update(ref(db, `matches/${SESSION_CODE}/players/${localName}`), { pots: newPots });
+      const emptyPotIdx = currentPlayer?.pots.findIndex(pot => pot.recipeCode === null);
+      if (emptyPotIdx !== undefined && emptyPotIdx !== -1) {
+        updatePlayerData(localName, p => {
+          const newPots = [...p.pots];
+          newPots[emptyPotIdx] = { ...newPots[emptyPotIdx], recipeCode: code, startTime: Date.now() };
+          return { ...p, pots: newPots };
+        });
         notify(`${recipe.name} no fogo!`);
         return true;
       } else {
@@ -166,43 +194,39 @@ const App: React.FC = () => {
     return false;
   };
 
-  const deliverPot = async (potId: number) => {
-    if (!currentPlayer) return;
-    const pot = currentPlayer.pots.find(p => p.id === potId);
+  const deliverPot = (potId: number) => {
+    const pot = currentPlayer?.pots.find(p => p.id === potId);
     if (!pot || !pot.recipeCode) return;
     const recipe = RECIPES.find(r => r.code === pot.recipeCode);
     if (recipe) {
       const reward = Math.ceil(recipe.value / 3);
-      const newPots = [...currentPlayer.pots];
-      newPots[potId] = { ...newPots[potId], recipeCode: null, startTime: null };
-      
-      await update(ref(db, `matches/${SESSION_CODE}/players/${localName}`), { 
-        coins: currentPlayer.coins + reward,
-        pots: newPots 
+      updateBalance(reward, `Venda: ${recipe.name}`);
+      updatePlayerData(localName, p => {
+        const newPots = [...p.pots];
+        newPots[potId] = { ...newPots[potId], recipeCode: null, startTime: null };
+        return { ...p, pots: newPots };
       });
-      await logTransaction(`Venda: ${recipe.name}`, reward, 'gain');
       notify(`+${reward} moedas!`);
     }
   };
 
-  const giveUpPot = async (potId: number) => {
-    if (!currentPlayer) return;
-    const newPots = [...currentPlayer.pots];
-    newPots[potId] = { ...newPots[potId], recipeCode: null, startTime: null };
-    await update(ref(db, `matches/${SESSION_CODE}/players/${localName}`), { pots: newPots });
+  const giveUpPot = (potId: number) => {
+    updatePlayerData(localName, p => {
+      const newPots = [...p.pots];
+      newPots[potId] = { ...newPots[potId], recipeCode: null, startTime: null };
+      return { ...p, pots: newPots };
+    });
     notify('Receita descartada');
   };
 
-  const purchaseIngredient = async (code: string, cost: number) => {
-    if (!currentPlayer) return false;
-    if (currentPlayer.coins >= cost) {
+  const purchaseIngredient = (code: string, cost: number) => {
+    if ((currentPlayer?.coins || 0) >= cost) {
       const ingredient = INGREDIENTS.find(i => i.code === code);
-      const newInventory = [...(currentPlayer.inventory || []), code];
-      await update(ref(db, `matches/${SESSION_CODE}/players/${localName}`), { 
-        coins: currentPlayer.coins - cost,
-        inventory: newInventory 
-      });
-      await logTransaction(`Compra: ${ingredient?.name}`, cost, 'loss');
+      updateBalance(-cost, `Compra: ${ingredient?.name}`);
+      updatePlayerData(localName, p => ({
+        ...p,
+        inventory: [...p.inventory, code]
+      }));
       notify(`Comprou ${ingredient?.name}`);
       return true;
     }
@@ -210,59 +234,54 @@ const App: React.FC = () => {
     return false;
   };
 
-  const handleTrade = async (targetPlayer: string, type: 'coins' | 'item', data: any) => {
-    if (!currentPlayer || currentPlayer.hasTransactedThisRound) {
+  const handleTrade = (targetPlayer: string, type: 'coins' | 'item', data: any) => {
+    if (currentPlayer?.hasTransactedThisRound) {
       notify('Apenas 1 troca por rodada!', 'error');
       return;
     }
 
-    const receiver = gameState.players.find(p => p.name === targetPlayer);
-    if (!receiver) return;
+    setGameState(prev => {
+      const senderIdx = prev.players.findIndex(p => p.name === localName);
+      const receiverIdx = prev.players.findIndex(p => p.name === targetPlayer);
+      if (senderIdx === -1 || receiverIdx === -1) return prev;
 
-    if (type === 'coins') {
-      const amount = data as number;
-      if (currentPlayer.coins < amount) { notify('Saldo insuficiente!', 'error'); return; }
-      
-      const senderUpdate = { 
-        coins: currentPlayer.coins - amount, 
-        hasTransactedThisRound: true 
-      };
-      const receiverUpdate = { 
-        coins: receiver.coins + amount 
-      };
+      const newPlayers = [...prev.players];
+      const sender = { ...newPlayers[senderIdx] };
+      const receiver = { ...newPlayers[receiverIdx] };
 
-      await update(ref(db, `matches/${SESSION_CODE}/players/${localName}`), senderUpdate);
-      await update(ref(db, `matches/${SESSION_CODE}/players/${targetPlayer}`), receiverUpdate);
-      await logTransaction(`Enviou $${amount} para ${targetPlayer}`, amount, 'loss');
-    } else {
-      const itemCode = data as string;
-      const itemIdx = currentPlayer.inventory.indexOf(itemCode);
-      if (itemIdx === -1) return;
+      if (type === 'coins') {
+        const amount = data as number;
+        if (sender.coins < amount) { notify('Saldo insuficiente!', 'error'); return prev; }
+        sender.coins -= amount;
+        receiver.coins += amount;
+      } else {
+        const itemCode = data as string;
+        const itemIdx = sender.inventory.indexOf(itemCode);
+        if (itemIdx === -1) return prev;
+        sender.inventory.splice(itemIdx, 1);
+        receiver.inventory.push(itemCode);
+      }
 
-      const newSenderInventory = [...currentPlayer.inventory];
-      newSenderInventory.splice(itemIdx, 1);
-      
-      const newReceiverInventory = [...(receiver.inventory || []), itemCode];
+      sender.hasTransactedThisRound = true;
+      newPlayers[senderIdx] = sender;
+      newPlayers[receiverIdx] = receiver;
 
-      await update(ref(db, `matches/${SESSION_CODE}/players/${localName}`), { 
-        inventory: newSenderInventory,
-        hasTransactedThisRound: true 
-      });
-      await update(ref(db, `matches/${SESSION_CODE}/players/${targetPlayer}`), { 
-        inventory: newReceiverInventory 
-      });
-      await logTransaction(`Enviou Item para ${targetPlayer}`, 1, 'loss');
-    }
+      const newLog = [{
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'loss' as const,
+        amount: type === 'coins' ? data : 1,
+        description: `${localName} enviou ${type === 'coins' ? '$' + data : 'Item'} para ${targetPlayer}`,
+        timestamp: Date.now()
+      }, ...prev.financialLog];
+
+      return { ...prev, players: newPlayers, financialLog: newLog.slice(0, 50) };
+    });
     notify(`Enviado para ${targetPlayer}`);
   };
 
-  const resetRoundTransaction = async () => {
-    if (!currentPlayer) return;
-    await update(ref(db, `matches/${SESSION_CODE}/players/${localName}`), { 
-      coins: currentPlayer.coins + 2,
-      hasTransactedThisRound: false 
-    });
-    await logTransaction("Bônus Rodada", 2, "gain");
+  const resetRoundTransaction = () => {
+    updateBalance(2, "Bônus Rodada");
+    updatePlayerData(localName, p => ({ ...p, hasTransactedThisRound: false }));
     notify("Recebeu +2 da rodada!");
   };
 
