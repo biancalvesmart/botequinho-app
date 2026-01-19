@@ -1,0 +1,166 @@
+
+import React, { useState, useEffect } from 'react';
+import { SESSION_CODE } from '../constants';
+import { ChevronRight, AlertTriangle, CheckCircle, RefreshCcw } from 'lucide-react';
+
+interface LobbyProps {
+  onJoin: (name: string) => void;
+  onStart: () => void;
+  onReset: () => void;
+  players: string[];
+  currentName: string;
+}
+
+const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players, currentName }) => {
+  const [step, setStep] = useState<'logo' | 'code' | 'name' | 'waiting'>('logo');
+  const [inputCode, setInputCode] = useState('');
+  const [playerName, setPlayerName] = useState('');
+  const [error, setError] = useState('');
+
+  // Auto-transition to waiting if local identity is set and present in global player list
+  useEffect(() => {
+    if (currentName && players.includes(currentName)) {
+      setStep('waiting');
+    }
+  }, [currentName, players]);
+
+  const handleNext = () => {
+    if (step === 'logo') {
+      setStep('code');
+    } else if (step === 'code') {
+      if (inputCode === SESSION_CODE) {
+        setError('');
+        setStep('name');
+      } else {
+        setError('Código inválido! Tente TAB-0-0-0');
+      }
+    } else if (step === 'name') {
+      if (playerName.trim().length > 2) {
+        onJoin(playerName);
+        // Step will change to 'waiting' via the useEffect above when App updates state
+      } else {
+        setError('Nome muito curto!');
+      }
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12 text-center watercolor-wash relative">
+      {step === 'logo' && (
+        <div className="animate-in fade-in zoom-in duration-1000">
+          <div className="relative mb-8">
+            <div className="absolute inset-0 bg-[#FFCA1B] rounded-full blur-2xl opacity-20"></div>
+            <img 
+              src="https://api.dicebear.com/7.x/icons/svg?seed=Botequinho&backgroundColor=FFCA1B&icon=cup" 
+              alt="Logo" 
+              className="w-32 h-32 mx-auto relative z-10"
+            />
+          </div>
+          <h1 className="text-6xl font-kalam text-[#FF3401] mb-2 font-bold">Botequinho</h1>
+          <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs mb-12">Watercolor Edition</p>
+          <button 
+            onClick={handleNext}
+            className="w-full max-w-xs bg-[#FF3401] text-white font-bold text-lg py-4 rounded-2xl transition-all shadow-xl btn-watercolor"
+          >
+            Entrar no Bar
+          </button>
+        </div>
+      )}
+
+      {step === 'code' && (
+        <div className="w-full max-w-xs animate-in slide-in-from-bottom duration-500">
+          <h2 className="text-4xl font-kalam text-black mb-10">Qual a Mesa?</h2>
+          <div className="paper-slip p-8 rounded-3xl mb-8 transform -rotate-1">
+             <input 
+              type="text" 
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+              placeholder="TAB-0-0-0"
+              className="w-full bg-transparent border-b-2 border-black/10 py-3 text-center font-mono text-2xl tracking-widest focus:border-[#FFCA1B] outline-none transition-all placeholder:text-gray-300"
+            />
+          </div>
+          {error && <p className="text-[#FF3401] text-xs font-bold uppercase mb-6 flex items-center justify-center gap-1"><AlertTriangle size={14}/> {error}</p>}
+          <button 
+            onClick={handleNext}
+            className="w-full bg-[#0A9396] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 btn-watercolor"
+          >
+            Verificar Mesa <ChevronRight size={20}/>
+          </button>
+        </div>
+      )}
+
+      {step === 'name' && (
+        <div className="w-full max-w-xs animate-in slide-in-from-bottom duration-500">
+          <h2 className="text-4xl font-kalam text-black mb-10">Quem é você?</h2>
+          <div className="paper-slip p-8 rounded-3xl mb-8 transform rotate-1">
+            <input 
+              type="text" 
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              placeholder="Seu nome ou apelido"
+              className="w-full bg-transparent border-b-2 border-black/10 py-3 text-center text-xl font-bold focus:border-[#588A48] outline-none transition-all"
+            />
+          </div>
+          {error && <p className="text-[#FF3401] text-xs font-bold uppercase mb-6">{error}</p>}
+          <button 
+            onClick={handleNext}
+            className="w-full bg-[#588A48] text-white font-bold py-4 rounded-2xl btn-watercolor"
+          >
+            Pronto!
+          </button>
+        </div>
+      )}
+
+      {step === 'waiting' && (
+        <div className="w-full max-w-sm animate-in zoom-in duration-500">
+          <h2 className="text-4xl font-kalam text-black mb-8">Aguardando...</h2>
+          <div className="paper-slip p-8 rounded-3xl mb-10 text-left">
+            <div className="flex items-center justify-between mb-6">
+               <span className="font-bold text-gray-400 text-xs uppercase tracking-widest">Jogadores Online</span>
+               <span className="bg-[#FFCA1B] text-black text-[10px] px-2 py-1 rounded font-black">{players.length}/4</span>
+            </div>
+            
+            <div className="space-y-4">
+              {players.map((p, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <CheckCircle size={18} className="text-[#588A48]" />
+                  <span className="font-bold text-black text-lg">{p}</span>
+                  {p === currentName && <span className="text-[9px] text-gray-400 font-bold ml-auto">(VOCÊ)</span>}
+                </div>
+              ))}
+              {[...Array(Math.max(0, 4 - players.length))].map((_, i) => (
+                <div key={`wait-${i}`} className="flex items-center gap-3 opacity-30">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                  <span className="font-bold text-gray-500">Esperando...</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button 
+            onClick={onStart}
+            disabled={players.length < 2}
+            className={`w-full py-5 rounded-2xl font-bold text-lg uppercase transition-all ${
+              players.length >= 2 
+                ? 'bg-[#FF3401] text-white shadow-xl btn-watercolor' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Começar Partida
+          </button>
+          <p className="mt-4 text-[10px] text-gray-400 uppercase font-bold tracking-widest">A partida requer entre 2 e 4 jogadores para iniciar</p>
+        </div>
+      )}
+
+      {/* Debug/Test Utility */}
+      <button 
+        onClick={onReset}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-300 font-bold uppercase tracking-widest flex items-center gap-2 hover:text-[#FF3401] transition-colors"
+      >
+        <RefreshCcw size={12}/> Limpar Sessão
+      </button>
+    </div>
+  );
+};
+
+export default Lobby;
