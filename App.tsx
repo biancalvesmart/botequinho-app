@@ -3,9 +3,11 @@ import { AppRoute, GameState, PlayerData } from './types';
 import { INGREDIENTS, RECIPES } from './constants';
 import { Home, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 
+// Firebase Imports
 import { db } from './lib/firebase';
 import { ref, onValue, set } from 'firebase/database';
 
+// Components
 import Lobby from './components/Lobby';
 import GameHome from './components/Home';
 import Shop from './components/Shop';
@@ -16,28 +18,38 @@ const DB_PATH = 'sala_comum_v1';
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
-  
   const [localName, setLocalName] = useState<string>(() => sessionStorage.getItem('local_player_name') || '');
 
+  // ESTADO INICIAL SEGURO
   const [gameState, setGameState] = useState<GameState>({
       isStarted: false,
-      players: [],
+      players: [], // Começa sempre como array vazio
       financialLog: []
   });
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
+  // 1. OUVINTE DO FIREBASE BLINDADO 🛡️
   useEffect(() => {
     const gameRef = ref(db, DB_PATH);
     
     const unsubscribe = onValue(gameRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        setGameState(data);
-        if (data.isStarted && route === AppRoute.LOBBY) {
+        // AQUI ESTÁ O SEGREDO: Se players vier 'undefined', forçamos virar []
+        const safeData = {
+            ...data,
+            players: Array.isArray(data.players) ? data.players : [],
+            financialLog: Array.isArray(data.financialLog) ? data.financialLog : []
+        };
+        
+        setGameState(safeData);
+
+        if (safeData.isStarted && route === AppRoute.LOBBY) {
            setRoute(AppRoute.HOME);
         }
       } else {
+        // Se não tiver nada no banco, cria o estado inicial
         const initialState = { isStarted: false, players: [], financialLog: [] };
         set(gameRef, initialState);
         setGameState(initialState);
@@ -45,27 +57,31 @@ const App: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [route]); 
+  }, [route]);
 
   const saveToFirebase = (newState: GameState) => {
-     
      const gameRef = ref(db, DB_PATH);
      set(gameRef, newState);
   };
 
-  const currentPlayer = useMemo(() => 
-    gameState.players.find(p => p.name === localName),
-    [gameState.players, localName]
-  );
+  // 2. USEMEMO BLINDADO 🛡️
+  const currentPlayer = useMemo(() => {
+    // Se por milagre players for null, retorna undefined sem quebrar
+    if (!gameState.players || !Array.isArray(gameState.players)) return undefined;
+    return gameState.players.find(p => p.name === localName);
+  }, [gameState.players, localName]);
 
   const notify = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // --- AÇÕES DO JOGO ---
 
   const handleJoin = (name: string) => {
-    if (gameState.players.length >= 4 && !gameState.players.find(p => p.name === name)) {
+    const safePlayers = Array.isArray(gameState.players) ? gameState.players : [];
+    
+    if (safePlayers.length >= 4 && !safePlayers.find(p => p.name === name)) {
       notify("Mesa cheia!", "error");
       return;
     }
@@ -73,7 +89,7 @@ const App: React.FC = () => {
     setLocalName(name);
     sessionStorage.setItem('local_player_name', name);
     
-    const playerExists = gameState.players.find(p => p.name === name);
+    const playerExists = safePlayers.find(p => p.name === name);
     
     if (playerExists) {
        if (gameState.isStarted) setRoute(AppRoute.HOME);
@@ -93,7 +109,7 @@ const App: React.FC = () => {
 
     const newState = {
       ...gameState,
-      players: [...gameState.players, newPlayer]
+      players: [...safePlayers, newPlayer]
     };
     
     saveToFirebase(newState);
@@ -108,22 +124,23 @@ const App: React.FC = () => {
   const handleResetSession = () => {
     const cleanState = { isStarted: false, players: [], financialLog: [] };
     saveToFirebase(cleanState);
-    
     sessionStorage.removeItem('local_player_name');
     window.location.reload();
   };
 
   const updatePlayerData = useCallback((name: string, updater: (p: PlayerData) => PlayerData, description?: string, amount?: number, type?: 'gain' | 'loss') => {
+    // Proteção extra antes de atualizar
+    const safePlayers = Array.isArray(gameState.players) ? [...gameState.players] : [];
+    const playerIdx = safePlayers.findIndex(p => p.name === name);
     
-    const playerIdx = gameState.players.findIndex(p => p.name === name);
     if (playerIdx === -1) return;
 
-    const newPlayers = [...gameState.players];
-    newPlayers[playerIdx] = updater(newPlayers[playerIdx]);
+    safePlayers[playerIdx] = updater(safePlayers[playerIdx]);
 
-    const newLog = [...gameState.financialLog];
+    const safeLog = Array.isArray(gameState.financialLog) ? [...gameState.financialLog] : [];
+    
     if (description && amount !== undefined) {
-      newLog.unshift({
+      safeLog.unshift({
         id: Math.random().toString(36).substr(2, 9),
         type: type || (amount >= 0 ? 'gain' : 'loss'),
         amount: Math.abs(amount),
@@ -134,8 +151,8 @@ const App: React.FC = () => {
 
     const newState = {
       ...gameState,
-      players: newPlayers,
-      financialLog: newLog.slice(0, 50)
+      players: safePlayers,
+      financialLog: safeLog.slice(0, 50)
     };
 
     saveToFirebase(newState);
@@ -174,7 +191,7 @@ const App: React.FC = () => {
         return false;
       }
     }
-    notify('Código inválido, tente novamente!', 'error');
+    notify('Código inválido!', 'error');
     return false;
   };
 
@@ -225,14 +242,14 @@ const App: React.FC = () => {
       return;
     }
 
-    const senderIdx = gameState.players.findIndex(p => p.name === localName);
-    const receiverIdx = gameState.players.findIndex(p => p.name === targetPlayer);
+    const safePlayers = Array.isArray(gameState.players) ? [...gameState.players] : [];
+    const senderIdx = safePlayers.findIndex(p => p.name === localName);
+    const receiverIdx = safePlayers.findIndex(p => p.name === targetPlayer);
     
     if (senderIdx === -1 || receiverIdx === -1) return;
 
-    const newPlayers = [...gameState.players];
-    const sender = { ...newPlayers[senderIdx] };
-    const receiver = { ...newPlayers[receiverIdx] };
+    const sender = { ...safePlayers[senderIdx] };
+    const receiver = { ...safePlayers[receiverIdx] };
 
     if (type === 'coins') {
        const amount = data as number;
@@ -248,24 +265,25 @@ const App: React.FC = () => {
     }
 
     sender.hasTransactedThisRound = true;
-    newPlayers[senderIdx] = sender;
-    newPlayers[receiverIdx] = receiver;
+    safePlayers[senderIdx] = sender;
+    safePlayers[receiverIdx] = receiver;
 
+    const safeLog = Array.isArray(gameState.financialLog) ? [...gameState.financialLog] : [];
     const newLog = [{
        id: Math.random().toString(36).substr(2, 9),
        type: 'loss' as const,
        amount: type === 'coins' ? data : 1,
        description: `${localName} enviou ${type === 'coins' ? '$' + data : 'Item'} para ${targetPlayer}`,
        timestamp: Date.now()
-    }, ...gameState.financialLog];
+    }, ...safeLog];
 
-    saveToFirebase({ ...gameState, players: newPlayers, financialLog: newLog.slice(0, 50) });
+    saveToFirebase({ ...gameState, players: safePlayers, financialLog: newLog.slice(0, 50) });
     notify(`Enviado para ${targetPlayer}`);
   };
 
   const resetRoundTransaction = () => {
-    updatePlayerData(localName, p => ({ ...p, hasTransactedThisRound: false }), "Renda da Rodada", 2);
-    notify("Recebeu +2 moedas de renda da rodada!");
+    updatePlayerData(localName, p => ({ ...p, hasTransactedThisRound: false }), "Bônus Rodada", 2);
+    notify("Recebeu +2 da rodada!");
   };
 
   return (
@@ -293,7 +311,7 @@ const App: React.FC = () => {
             onJoin={handleJoin} 
             onStart={handleStartMatch} 
             onReset={handleResetSession}
-            players={gameState.players.map(p => p.name)} 
+            players={(Array.isArray(gameState.players) ? gameState.players : []).map(p => p.name)} 
             currentName={localName} 
           />
         ) : (
@@ -302,7 +320,7 @@ const App: React.FC = () => {
               <>
                 {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} />}
                 {route === AppRoute.SHOP && <Shop coins={currentPlayer.coins} onBuy={purchaseIngredient} updateBalance={updateBalance} />}
-                {route === AppRoute.BANK && <Bank player={currentPlayer} log={gameState.financialLog} players={gameState.players.map(p => p.name)} localName={localName} updateBalance={updateBalance} onTrade={handleTrade} onNewRound={resetRoundTransaction} />}
+                {route === AppRoute.BANK && <Bank player={currentPlayer} log={Array.isArray(gameState.financialLog) ? gameState.financialLog : []} players={(Array.isArray(gameState.players) ? gameState.players : []).map(p => p.name)} localName={localName} updateBalance={updateBalance} onTrade={handleTrade} onNewRound={resetRoundTransaction} />}
                 {route === AppRoute.COOKBOOK && <Cookbook />}
               </>
             )}
@@ -322,10 +340,10 @@ const App: React.FC = () => {
       {gameState.isStarted && (
         <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
           {[
-            { id: AppRoute.HOME, icon: Home, label: 'Minha cozinha' },
+            { id: AppRoute.HOME, icon: Home, label: 'Lobby' },
             { id: AppRoute.SHOP, icon: ShoppingBag, label: 'Lojinha' },
-            { id: AppRoute.BANK, icon: Landmark, label: 'Meu banco' },
-            { id: AppRoute.COOKBOOK, icon: BookOpen, label: 'Livro de receitas' },
+            { id: AppRoute.BANK, icon: Landmark, label: 'Banco' },
+            { id: AppRoute.COOKBOOK, icon: BookOpen, label: 'Receitas' },
           ].map((item) => (
             <button 
               key={item.id}
