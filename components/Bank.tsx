@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { PlayerData, FinancialEvent } from '../types';
 import { INGREDIENTS } from '../constants';
@@ -51,7 +50,12 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
 
   return (
     <div className="p-6 watercolor-wash min-h-full">
-      <h2 className="text-5xl font-kalam text-black mb-8">Meu Banco</h2>
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-5xl font-kalam text-black">Meu Banco</h2>
+        <div className="bg-[#FFCA1B] px-4 py-2 rounded-full border border-black/5 transform rotate-2">
+            <span className="font-kalam text-xl font-bold">Renda Fixa: $2</span>
+        </div>
+      </div>
 
       <div className="paper-slip p-8 rounded-[2.5rem] mb-8 text-center shadow-lg border-b-4 border-black/5">
         <div className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.3em] mb-2">Minha Carteira</div>
@@ -60,14 +64,14 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={onNewRound}
-            className="bg-[#588A48] text-white font-bold py-4 rounded-2xl transition-all shadow-md btn-watercolor flex flex-col items-center gap-1"
+            className="bg-[#588A48] text-white font-bold py-4 rounded-2xl transition-all shadow-md btn-watercolor flex flex-col items-center gap-1 active:scale-95"
           >
             <PlusCircle size={20}/>
-            <span className="text-[10px] uppercase">Receber Rodada</span>
+            <span className="text-[10px] uppercase">Receber Renda</span>
           </button>
           <button 
             onClick={() => setShowExtrato(true)}
-            className="bg-[#0A9396] text-white font-bold py-4 rounded-2xl transition-all shadow-md btn-watercolor flex flex-col items-center gap-1"
+            className="bg-[#0A9396] text-white font-bold py-4 rounded-2xl transition-all shadow-md btn-watercolor flex flex-col items-center gap-1 active:scale-95"
           >
             <History size={20}/>
             <span className="text-[10px] uppercase">Extrato Global</span>
@@ -95,22 +99,23 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
 
       {showExtrato && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="paper-slip w-full max-w-sm rounded-3xl overflow-hidden torn-edge animate-in slide-in-from-bottom-8 duration-500">
+          {/* REMOVIDO A CLASSE 'torn-edge' DAQUI PARA MELHORAR QUALIDADE */}
+          <div className="paper-slip w-full max-w-sm rounded-3xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500 shadow-2xl">
             <div className="bg-[#fdfcf0] p-6 border-b border-black/5 flex justify-between items-center">
               <div>
-                 <h3 className="text-2xl font-kalam text-black leading-none">Movimentações</h3>
-                 <span className="text-[9px] uppercase font-bold text-gray-400">Log da Mesa</span>
+                  <h3 className="text-2xl font-kalam text-black leading-none">Movimentações</h3>
+                  <span className="text-[9px] uppercase font-bold text-gray-400">Log da Mesa</span>
               </div>
               <button onClick={() => setShowExtrato(false)} className="text-gray-400 hover:text-black"><X size={24}/></button>
             </div>
             <div className="payment-slip max-h-[60vh] overflow-y-auto">
               {log.length > 0 ? log.map((event) => (
-                <div key={event.id} className="flex justify-between items-center text-sm border-b border-black/5 py-1">
-                  <div className="flex flex-col leading-tight">
+                <div key={event.id} className="flex justify-between items-center text-sm border-b border-black/5 py-3 px-2">
+                  <div className="flex flex-col leading-tight gap-0.5">
                     <span className="font-bold text-black/80">{event.description}</span>
                     <span className="text-[8px] text-gray-400 font-bold uppercase">{new Date(event.timestamp).toLocaleTimeString()}</span>
                   </div>
-                  <span className={`font-bold ${event.type === 'gain' ? 'text-[#588A48]' : 'text-[#FF3401]'}`}>
+                  <span className={`font-bold text-lg ${event.type === 'gain' ? 'text-[#588A48]' : 'text-[#FF3401]'}`}>
                     {event.type === 'gain' ? '+' : '-'}{event.amount}
                   </span>
                 </div>
@@ -124,7 +129,7 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
 
       {showRefund && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-in fade-in duration-300">
-          <div className="paper-slip w-full max-w-xs rounded-3xl p-8 animate-in zoom-in duration-300">
+          <div className="paper-slip w-full max-w-xs rounded-3xl p-8 animate-in zoom-in duration-300 shadow-2xl">
             <h3 className="text-2xl font-kalam text-black mb-6">Devolver moedas</h3>
             <div className="flex flex-col items-center gap-6 mb-8">
                <div className="text-5xl font-kalam text-[#FF3401]">$ {refundValue}</div>
@@ -147,7 +152,7 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
 
       {showTrade && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-          <div className="paper-slip w-full max-w-sm rounded-[3rem] p-10 animate-in zoom-in duration-300">
+          <div className="paper-slip w-full max-w-sm rounded-[3rem] p-10 animate-in zoom-in duration-300 shadow-2xl">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-3xl font-kalam text-black">Troca na Mesa</h3>
               <button onClick={() => setShowTrade(false)} className="text-gray-400 hover:text-black"><X size={24}/></button>
