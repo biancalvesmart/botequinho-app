@@ -6,7 +6,7 @@ import { Package, Search, Sparkles, Coins, RefreshCw } from 'lucide-react';
 interface ShopProps {
   coins: number;
   onBuy: (code: string, cost: number) => boolean;
-  onBuySpecial: (cost: number, type: 'Saco' | 'Encomenda') => void; // Nova prop
+  onBuySpecial: (cost: number, type: 'Saco' | 'Encomenda') => void; // NOVA PROPRIEDADE
   updateBalance: (amount: number, description: string) => void;
 }
 
