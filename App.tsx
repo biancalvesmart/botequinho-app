@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AppRoute, GameState, PlayerData } from './types';
 import { INGREDIENTS, RECIPES } from './constants';
-import { Home as HomeIcon, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Home as HomeIcon, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2, RefreshCcw } from 'lucide-react';
 import { db } from './lib/firebase';
 import { ref, onValue, set } from 'firebase/database';
 import Lobby from './components/Lobby';
@@ -10,7 +10,7 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_v10_final_mesmo';
+const DB_PATH = 'sala_v11_oficial_nomes'; // Nova sala pra garantir que tudo use a lógica nova
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
@@ -271,6 +271,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen watercolor-wash overflow-hidden max-w-md mx-auto relative shadow-2xl">
+      {/* Header com Infos do Jogador */}
       {gameState.isStarted && currentPlayer && (
         <div className="bg-[#fffef2]/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-black/5 shadow-sm z-50">
            <div className="flex items-center gap-3">
@@ -294,11 +295,23 @@ const App: React.FC = () => {
           />
         ) : (
           <>
-            {currentPlayer && (
+            {/* CORREÇÃO PARA TELA VAZIA: Se o jogo começou mas o jogador não existe, mostra botão de sair */}
+            {!currentPlayer ? (
+                <div className="flex flex-col items-center justify-center h-full p-10 text-center opacity-50">
+                    <p className="font-bold uppercase tracking-widest text-xs mb-4">Jogador não encontrado na sala</p>
+                    <button 
+                        onClick={handleResetSession}
+                        className="bg-gray-200 text-gray-500 px-6 py-3 rounded-xl font-bold text-xs uppercase flex items-center gap-2"
+                    >
+                        <RefreshCcw size={16}/> Reiniciar
+                    </button>
+                </div>
+            ) : (
               <>
-                {/* AQUI ESTAVA FALTANDO O PROP onResetSession, AGORA ESTÁ CORRIGIDO: */}
+                {/* Aqui conectamos o onResetSession que faltava! */}
                 {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} onResetSession={handleResetSession} />}
                 
+                {/* Conectamos todas as funções da loja para evitar erros */}
                 {route === AppRoute.SHOP && (
                     <Shop 
                         coins={currentPlayer.coins} 
@@ -320,8 +333,7 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* --- MENU DE NAVEGAÇÃO --- */}
-      {gameState.isStarted && (
+      {gameState.isStarted && currentPlayer && (
         <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
           {[
             { id: AppRoute.HOME, icon: HomeIcon, label: 'Lobby' },
