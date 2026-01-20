@@ -10,7 +10,7 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_v7_final_funcionando';
+const DB_PATH = 'sala_v8_calculo_correto'; // Nova sala para garantir tudo limpo
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
@@ -104,7 +104,7 @@ const App: React.FC = () => {
     }
     const newPlayer: PlayerData = {
       name,
-      coins: 0, 
+      coins: 0,
       inventory: [],
       pots: [{ id: 0, recipeCode: null, startTime: null }, { id: 1, recipeCode: null, startTime: null }],
       hasTransactedThisRound: false
@@ -129,9 +129,7 @@ const App: React.FC = () => {
       notify(`Item: ${ingredient.name}`);
       return true;
     } else if (recipe && currentPlayer) {
-      // CORREÇÃO DA PANELA: Verifica explicitamente se está vazia (null ou undefined ou string vazia)
       const emptyPotIdx = currentPlayer.pots.findIndex(pot => !pot.recipeCode);
-      
       if (emptyPotIdx !== -1) {
         updatePlayerData(localName, p => {
           const newPots = [...p.pots];
@@ -149,19 +147,30 @@ const App: React.FC = () => {
     return false;
   };
 
+  // --- CORREÇÃO PRINCIPAL AQUI ---
   const deliverPot = (potId: number) => {
     if (!currentPlayer) return;
     const pot = currentPlayer.pots.find(p => p.id === potId);
     if (!pot || !pot.recipeCode) return;
+    
     const recipe = (RECIPES || []).find(r => r.code === pot.recipeCode);
     if (recipe) {
-      updateBalance(recipe.value, `Venda: ${recipe.name}`);
+      // Regra: Valor / 3 arredondado para CIMA
+      const reward = Math.ceil(recipe.value / 3);
+
+      // ATUALIZAÇÃO ÚNICA (Soma moeda + Limpa panela ao mesmo tempo)
       updatePlayerData(localName, p => {
         const newPots = [...p.pots];
         newPots[potId] = { ...newPots[potId], recipeCode: null, startTime: null };
-        return { ...p, pots: newPots };
-      });
-      notify(`+${recipe.value} moedas!`);
+        
+        return { 
+            ...p, 
+            coins: p.coins + reward, // <--- O dinheiro entra aqui junto com a limpeza
+            pots: newPots 
+        };
+      }, `Venda: ${recipe.name}`, reward);
+
+      notify(`+${reward} moedas!`);
     }
   };
 
@@ -192,9 +201,15 @@ const App: React.FC = () => {
   const purchaseSacoSurpresa = (cost: number) => {
     if (!currentPlayer) return;
     if (currentPlayer.coins >= cost) {
-        updateBalance(-cost, "Saco Surpresa");
+        // Debita o valor E adiciona o item na mesma jogada para evitar erro
         const randomIng = INGREDIENTS[Math.floor(Math.random() * INGREDIENTS.length)];
-        updatePlayerData(localName, p => ({ ...p, inventory: [...p.inventory, randomIng.code] }));
+        
+        updatePlayerData(localName, p => ({ 
+            ...p, 
+            coins: p.coins - cost,
+            inventory: [...p.inventory, randomIng.code] 
+        }), "Saco Surpresa", -cost);
+        
         notify(`Ganhou: ${randomIng.name}`);
     } else {
         notify('Saldo insuficiente!', 'error');
@@ -282,10 +297,7 @@ const App: React.FC = () => {
             {currentPlayer && (
               <>
                 {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} />}
-                
-                {/* AQUI ESTAVA O ERRO: O Shop precisa receber as novas funções */}
                 {route === AppRoute.SHOP && <Shop coins={currentPlayer.coins} onBuy={purchaseIngredient} onBuySaco={purchaseSacoSurpresa} onBuyEncomenda={purchaseEncomenda} updateBalance={updateBalance} />}
-                
                 {route === AppRoute.BANK && <Bank player={currentPlayer} log={gameState.financialLog} players={gameState.players.map(p => p.name)} localName={localName} updateBalance={updateBalance} onTrade={handleTrade} onNewRound={resetRoundTransaction} />}
                 {route === AppRoute.COOKBOOK && <Cookbook />}
               </>
@@ -294,22 +306,7 @@ const App: React.FC = () => {
         )}
       </div>
       
-      {gameState.isStarted && (
-        <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
-          {[
-            { id: AppRoute.HOME, icon: HomeIcon, label: 'Lobby' },
-            { id: AppRoute.SHOP, icon: ShoppingBag, label: 'Lojinha' },
-            { id: AppRoute.BANK, icon: Landmark, label: 'Banco' },
-            { id: AppRoute.COOKBOOK, icon: BookOpen, label: 'Receitas' },
-          ].map((item) => (
-            <button key={item.id} onClick={() => setRoute(item.id)} className={`flex flex-col items-center gap-1 ${route === item.id ? 'text-[#FF3401]' : 'text-gray-400'}`}>
-              <item.icon size={26} />
-              <span className="text-[10px] font-bold uppercase">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      )}
-      
+      {/* NOTIFICAÇÃO COM Z-INDEX ALTO */}
       {notification && (
         <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
           {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
