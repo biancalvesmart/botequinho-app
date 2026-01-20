@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { PlayerData } from '../types';
 import { RECIPES, INGREDIENTS } from '../constants';
@@ -17,8 +16,14 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode }) =
   const [inputCode, setInputCode] = useState('');
 
   const handleAddCode = () => {
-    if (onAddCode(inputCode)) {
-      setInputCode('');
+    // Tenta adicionar
+    const success = onAddCode(inputCode);
+    
+    // SEMPRE limpa o input, independente de sucesso ou erro
+    setInputCode('');
+
+    // Só fecha o modal se deu certo
+    if (success) {
       setIsModalOpen(false);
     }
   };
@@ -43,7 +48,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode }) =
                   {recipe ? (
                     <div className="animate-in fade-in duration-500 w-full">
                       <div className="w-20 h-20 bg-[#FFCA1B]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                         <Flame size={40} className="text-[#FF3401]" />
+                          <Flame size={40} className="text-[#FF3401]" />
                       </div>
                       <h3 className="text-3xl font-kalam text-black mb-1">{recipe.name}</h3>
                       <span className="text-[9px] uppercase font-bold text-gray-400 tracking-widest block mb-8">{recipe.code}</span>
@@ -68,13 +73,13 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode }) =
                       onClick={() => setIsModalOpen(true)}
                       className="w-full flex flex-col items-center justify-center opacity-40 hover:opacity-100 transition-all group"
                     >
-                       <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#FFCA1B]/20 group-hover:text-[#FFCA1B] transition-colors">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#FFCA1B]/20 group-hover:text-[#FFCA1B] transition-colors">
                           <Plus size={32} />
-                       </div>
-                       <p className="font-kalam text-xl">Panela vazia...</p>
-                       <span className="mt-4 text-[10px] font-bold uppercase tracking-widest">
-                         ADICIONAR RECEITA
-                       </span>
+                        </div>
+                        <p className="font-kalam text-xl">Panela vazia...</p>
+                        <span className="mt-4 text-[10px] font-bold uppercase tracking-widest">
+                          ADICIONAR RECEITA
+                        </span>
                     </button>
                   )}
                 </div>
@@ -106,7 +111,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode }) =
         </div>
       ) : (
         <div className="paper-slip p-12 rounded-[2.5rem] text-center opacity-30 italic">
-           <p className="text-sm font-bold uppercase tracking-widest">Cesta Vazia</p>
+            <p className="text-sm font-bold uppercase tracking-widest">Cesta Vazia</p>
         </div>
       )}
 
