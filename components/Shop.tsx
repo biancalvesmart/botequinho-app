@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Ingredient } from '../types';
 import { INGREDIENTS } from '../constants';
@@ -7,15 +6,14 @@ import { Package, Search, Sparkles, Coins, RefreshCw } from 'lucide-react';
 interface ShopProps {
   coins: number;
   onBuy: (code: string, cost: number) => boolean;
+  onBuySpecial: (cost: number, type: 'Saco' | 'Encomenda') => void; // Nova prop
   updateBalance: (amount: number, description: string) => void;
 }
 
-const Shop: React.FC<ShopProps> = ({ coins, onBuy, updateBalance }) => {
+const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySpecial }) => {
   const [shelfItems, setShelfItems] = useState<Ingredient[]>([]);
 
-  useEffect(() => {
-    refreshShelf();
-  }, []);
+  useEffect(() => { refreshShelf(); }, []);
 
   const refreshShelf = () => {
     const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
@@ -71,15 +69,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, updateBalance }) => {
             <h3 className="font-kalam text-2xl text-black leading-tight">Saco Surpresa</h3>
             <p className="text-[9px] text-gray-400 mb-4 font-bold uppercase tracking-widest">Item aleatório da pilha</p>
             <button 
-              onClick={() => {
-                if(coins >= 4) {
-                    const randomIng = INGREDIENTS[Math.floor(Math.random() * INGREDIENTS.length)];
-                    updateBalance(-4, "Saco Surpresa");
-                    onBuy(randomIng.code, 0); 
-                } else {
-                    alert('Saldo insuficiente');
-                }
-              }}
+              onClick={() => onBuySpecial(4, 'Saco')}
               className="bg-[#FFCA1B] text-black text-[10px] font-bold px-6 py-3 rounded-2xl flex items-center gap-2 btn-watercolor shadow-md border border-black/5"
             >
               <Coins size={14}/> $ 4.00
@@ -96,13 +86,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, updateBalance }) => {
             <h3 className="font-kalam text-2xl text-white leading-tight">A Encomenda</h3>
             <p className="text-[9px] text-white/60 mb-4 font-bold uppercase tracking-widest">Escolha item livremente</p>
             <button 
-              onClick={() => {
-                if(coins >= 16) {
-                    updateBalance(-16, "A Encomenda");
-                } else {
-                    alert('Saldo insuficiente');
-                }
-              }}
+              onClick={() => onBuySpecial(16, 'Encomenda')}
               className={`text-[10px] font-bold px-6 py-3 rounded-2xl flex items-center gap-2 transition-all ${
                 coins >= 16 ? 'bg-white text-black btn-watercolor' : 'bg-white/20 text-white/50 cursor-not-allowed'
               }`}
