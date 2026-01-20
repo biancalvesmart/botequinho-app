@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Ingredient } from '../types';
 import { INGREDIENTS } from '../constants';
 import { Package, Search, Sparkles, Coins, RefreshCw, X } from 'lucide-react';
@@ -8,13 +8,14 @@ interface ShopProps {
   onBuy: (code: string, cost: number) => boolean;
   onBuySaco: (cost: number) => void;
   onBuyEncomenda: (code: string, cost: number) => void;
+  onBuySpecial: (cost: number, type: 'Saco' | 'Encomenda', data?: string) => void;
   updateBalance: (amount: number, description: string) => void;
 }
 
-const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda }) => {
+const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, onBuySpecial }) => {
   const [shelfItems, setShelfItems] = useState<Ingredient[]>([]);
   const [isEncomendaOpen, setIsEncomendaOpen] = useState(false);
-  const [encomendaCode, setEncomendaCode] = useState('');
+  const [searchQuery, setSearchQuery] = useState(''); // Mudei de code para searchQuery
 
   useEffect(() => { refreshShelf(); }, []);
 
@@ -32,9 +33,20 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda }) 
     }
   };
 
-  const handleConfirmEncomenda = () => {
-      onBuyEncomenda(encomendaCode.trim().toUpperCase(), 16);
-      setEncomendaCode('');
+  // Busca Inteligente para Encomenda
+  const filteredOptions = useMemo(() => {
+    if (!searchQuery) return [];
+    return INGREDIENTS.filter(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [searchQuery]);
+
+  const handleSelectEncomenda = (code: string) => {
+      // Usa a função wrapper passada pelo App (que unifica tudo)
+      if (onBuySpecial) {
+          onBuySpecial(16, 'Encomenda', code);
+      } else {
+          onBuyEncomenda(code, 16);
+      }
+      setSearchQuery('');
       setIsEncomendaOpen(false);
   };
 
@@ -76,9 +88,9 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda }) 
           </div>
           <div className="flex-1">
             <h3 className="font-kalam text-2xl text-black leading-tight">Saco Surpresa</h3>
-            <p className="text-[9px] text-gray-400 mb-4 font-bold uppercase tracking-widest">Item aleatório da pilha</p>
+            <p className="text-[9px] text-gray-400 mb-4 font-bold uppercase tracking-widest">Item aleatório</p>
             <button 
-              onClick={() => onBuySaco(4)}
+              onClick={() => onBuySpecial ? onBuySpecial(4, 'Saco') : onBuySaco(4)}
               className="bg-[#FFCA1B] text-black text-[10px] font-bold px-6 py-3 rounded-2xl flex items-center gap-2 btn-watercolor shadow-md border border-black/5"
             >
               <Coins size={14}/> $ 4.00
@@ -93,7 +105,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda }) 
           </div>
           <div className="flex-1 relative z-10">
             <h3 className="font-kalam text-2xl text-white leading-tight">A Encomenda</h3>
-            <p className="text-[9px] text-white/60 mb-4 font-bold uppercase tracking-widest">Escolha item livremente</p>
+            <p className="text-[9px] text-white/60 mb-4 font-bold uppercase tracking-widest">Escolha seu item</p>
             <button 
               onClick={() => setIsEncomendaOpen(true)}
               className={`text-[10px] font-bold px-6 py-3 rounded-2xl flex items-center gap-2 transition-all ${
@@ -106,29 +118,47 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda }) 
         </div>
       </div>
 
-      {/* MODAL DE ENCOMENDA */}
+      {/* MODAL ENCOMENDA COM BUSCA */}
       {isEncomendaOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
-          <div className="paper-slip w-full max-w-xs rounded-[3rem] p-10 animate-in zoom-in duration-200">
-            <div className="flex justify-between items-center mb-8">
+        <div className="fixed inset-0 z-[120] flex items-start justify-center pt-24 px-6 bg-black/80 backdrop-blur-sm">
+          <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4">
                <h3 className="text-3xl font-kalam text-black">Encomendar</h3>
                <button onClick={() => setIsEncomendaOpen(false)} className="text-gray-400"><X size={24}/></button>
             </div>
-            <p className="text-xs text-gray-500 mb-4 font-bold uppercase tracking-wide">Digite o código do ingrediente:</p>
-            <input 
-               autoFocus
-               type="text"
-               value={encomendaCode}
-               onChange={(e) => setEncomendaCode(e.target.value.toUpperCase())}
-               placeholder="Ex: I-1-0-1"
-               className="w-full bg-gray-50 border border-black/5 rounded-2xl px-4 py-5 text-center font-mono text-xl focus:border-[#FFCA1B] outline-none mb-8"
-            />
-            <button 
-               onClick={handleConfirmEncomenda}
-               className="w-full bg-[#FF3401] text-white font-bold py-5 rounded-2xl btn-watercolor uppercase text-sm"
-            >
-               Confirmar ($16)
-            </button>
+            
+            <div className="relative mb-4">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+                <input 
+                    autoFocus
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Digite o nome..."
+                    className="w-full bg-gray-50 border border-black/5 rounded-xl py-4 pl-12 pr-4 font-bold outline-none focus:border-[#FFCA1B]"
+                />
+            </div>
+
+             <div className="max-h-[300px] overflow-y-auto space-y-2">
+                {filteredOptions.length === 0 && searchQuery && (
+                    <p className="text-center text-gray-400 text-xs py-4">Nada encontrado...</p>
+                )}
+                {filteredOptions.map((item) => (
+                    <button
+                        key={item.code}
+                        onClick={() => handleSelectEncomenda(item.code)}
+                        className="w-full text-left p-4 rounded-xl bg-white border border-black/5 hover:bg-[#FF3401]/10 hover:border-[#FF3401] transition-colors flex items-center justify-between group"
+                    >
+                        <span className="font-bold text-black/80">{item.name}</span>
+                        <div className="flex items-center gap-2 text-[#FF3401] opacity-0 group-hover:opacity-100 transition-opacity font-bold text-xs uppercase">
+                            <span>$ 16</span> <Coins size={12}/>
+                        </div>
+                    </button>
+                ))}
+                {!searchQuery && (
+                    <p className="text-center text-gray-300 text-[10px] uppercase font-bold py-2">Busque para encomendar</p>
+                )}
+            </div>
           </div>
         </div>
       )}
