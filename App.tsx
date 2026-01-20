@@ -10,7 +10,7 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_v4_ajustes_finais'; // Mudei a sala pra aplicar as moedas zeradas
+const DB_PATH = 'sala_v5_final_correcao';
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
@@ -26,7 +26,6 @@ const App: React.FC = () => {
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
-  // --- PREPARAÇÃO DOS DADOS ---
   const processData = (data: any): GameState => {
     if (!data) return { isStarted: false, players: [], financialLog: [] };
     let safePlayers: PlayerData[] = [];
@@ -92,8 +91,6 @@ const App: React.FC = () => {
     updatePlayerData(localName, p => ({ ...p, coins: Math.max(0, p.coins + amount) }), description, amount);
   };
 
-  // --- AÇÕES ---
-
   const handleJoin = (name: string) => {
     if (gameState.players.length >= 4 && !gameState.players.find(p => p.name === name)) {
       notify("Mesa cheia!", "error");
@@ -107,7 +104,7 @@ const App: React.FC = () => {
     }
     const newPlayer: PlayerData = {
       name,
-      coins: 0, // <--- MOEDAS ZERADAS AQUI
+      coins: 0, // MOEDAS COMEÇAM ZERADAS
       inventory: [],
       pots: [{ id: 0, recipeCode: null, startTime: null }, { id: 1, recipeCode: null, startTime: null }],
       hasTransactedThisRound: false
@@ -123,7 +120,7 @@ const App: React.FC = () => {
   };
 
   const addItemByCode = (rawCode: string) => {
-    const code = rawCode.trim(); // <--- TRIM PARA EVITAR ERROS DE ESPAÇO
+    const code = rawCode.trim(); // CORREÇÃO: Remove espaços extras
     const ingredient = (INGREDIENTS || []).find(i => i.code === code);
     const recipe = (RECIPES || []).find(r => r.code === code);
 
@@ -190,7 +187,7 @@ const App: React.FC = () => {
     return false;
   };
 
-  // --- NOVA FUNÇÃO PARA SACO SURPRESA E ENCOMENDA ---
+  // NOVA FUNÇÃO: Compra Especial (Saco/Encomenda) com notificação vermelha
   const purchaseSpecial = (cost: number, type: 'Saco' | 'Encomenda') => {
     if (!currentPlayer) return;
     if (currentPlayer.coins >= cost) {
@@ -198,12 +195,11 @@ const App: React.FC = () => {
         
         if (type === 'Saco') {
             const randomIng = INGREDIENTS[Math.floor(Math.random() * INGREDIENTS.length)];
-            // Adiciona o item SEM cobrar de novo (já cobrou acima)
+            // Adiciona item sem cobrar de novo
             updatePlayerData(localName, p => ({ ...p, inventory: [...p.inventory, randomIng.code] }));
             notify(`Ganhou: ${randomIng.name}`);
         } else {
             notify("Encomenda paga! Escolha o item.");
-            // Lógica da encomenda: só desconta o dinheiro, o usuário adiciona o item manualmente depois com o código
         }
     } else {
         notify('Saldo insuficiente!', 'error');
@@ -236,7 +232,7 @@ const App: React.FC = () => {
   };
 
   const resetRoundTransaction = () => {
-    // <--- CORREÇÃO: AGORA SOMA AS MOEDAS
+    // CORREÇÃO: AGORA SOMA AS 2 MOEDAS DA RENDA
     updatePlayerData(localName, p => ({ 
         ...p, 
         hasTransactedThisRound: false,
@@ -301,4 +297,11 @@ const App: React.FC = () => {
       {notification && (
         <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
           {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
-          <span className="font-bold text-sm whitespace-nowrap">{notification
+          <span className="font-bold text-sm whitespace-nowrap">{notification.message}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
