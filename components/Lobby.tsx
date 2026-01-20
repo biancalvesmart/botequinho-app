@@ -16,7 +16,6 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players = [], c
   const [playerName, setPlayerName] = useState('');
   const [error, setError] = useState('');
 
-  // Garante que players é sempre uma lista, mesmo que venha sujeira
   const safePlayers = Array.isArray(players) ? players : [];
 
   useEffect(() => {
@@ -54,13 +53,13 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players = [], c
                🍺
             </div>
           </div>
-          <h1 className="text-6xl font-kalam text-[#FF3401] mb-2 font-bold">Botequinho</h1>
-          <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs mb-12">Watercolor Edition</p>
+          <h1 className="text-6xl font-kalam text-[#FF3401] mb-12 font-bold">Botequinho</h1>
+          
           <button 
             onClick={handleNext}
             className="w-full max-w-xs bg-[#FF3401] text-white font-bold text-lg py-4 rounded-2xl transition-all shadow-xl btn-watercolor"
           >
-            Entrar no Bar
+            Entrar no Boteco
           </button>
         </div>
       )}
