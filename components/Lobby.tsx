@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SESSION_CODE } from '../constants';
 import { ChevronRight, AlertTriangle, CheckCircle, RefreshCcw } from 'lucide-react';
@@ -11,18 +10,20 @@ interface LobbyProps {
   currentName: string;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players, currentName }) => {
+const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players = [], currentName }) => {
   const [step, setStep] = useState<'logo' | 'code' | 'name' | 'waiting'>('logo');
   const [inputCode, setInputCode] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [error, setError] = useState('');
 
-  // Auto-transition to waiting if local identity is set and present in global player list
+  // Garante que players é sempre uma lista, mesmo que venha sujeira
+  const safePlayers = Array.isArray(players) ? players : [];
+
   useEffect(() => {
-    if (currentName && players.includes(currentName)) {
+    if (currentName && safePlayers.includes(currentName)) {
       setStep('waiting');
     }
-  }, [currentName, players]);
+  }, [currentName, safePlayers]);
 
   const handleNext = () => {
     if (step === 'logo') {
@@ -37,7 +38,6 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players, curren
     } else if (step === 'name') {
       if (playerName.trim().length > 2) {
         onJoin(playerName);
-        // Step will change to 'waiting' via the useEffect above when App updates state
       } else {
         setError('Nome muito curto!');
       }
@@ -50,11 +50,9 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players, curren
         <div className="animate-in fade-in zoom-in duration-1000">
           <div className="relative mb-8">
             <div className="absolute inset-0 bg-[#FFCA1B] rounded-full blur-2xl opacity-20"></div>
-            <img 
-              src="https://api.dicebear.com/7.x/icons/svg?seed=Botequinho&backgroundColor=FFCA1B&icon=cup" 
-              alt="Logo" 
-              className="w-32 h-32 mx-auto relative z-10"
-            />
+            <div className="w-32 h-32 mx-auto relative z-10 bg-[#FFCA1B] rounded-full flex items-center justify-center text-6xl shadow-xl">
+               🍺
+            </div>
           </div>
           <h1 className="text-6xl font-kalam text-[#FF3401] mb-2 font-bold">Botequinho</h1>
           <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs mb-12">Watercolor Edition</p>
@@ -117,18 +115,18 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players, curren
           <div className="paper-slip p-8 rounded-3xl mb-10 text-left">
             <div className="flex items-center justify-between mb-6">
                <span className="font-bold text-gray-400 text-xs uppercase tracking-widest">Jogadores Online</span>
-               <span className="bg-[#FFCA1B] text-black text-[10px] px-2 py-1 rounded font-black">{players.length}/4</span>
+               <span className="bg-[#FFCA1B] text-black text-[10px] px-2 py-1 rounded font-black">{safePlayers.length}/4</span>
             </div>
             
             <div className="space-y-4">
-              {players.map((p, i) => (
+              {safePlayers.map((p, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <CheckCircle size={18} className="text-[#588A48]" />
                   <span className="font-bold text-black text-lg">{p}</span>
                   {p === currentName && <span className="text-[9px] text-gray-400 font-bold ml-auto">(VOCÊ)</span>}
                 </div>
               ))}
-              {[...Array(Math.max(0, 4 - players.length))].map((_, i) => (
+              {[...Array(Math.max(0, 4 - safePlayers.length))].map((_, i) => (
                 <div key={`wait-${i}`} className="flex items-center gap-3 opacity-30">
                   <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                   <span className="font-bold text-gray-500">Esperando...</span>
@@ -139,9 +137,9 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players, curren
 
           <button 
             onClick={onStart}
-            disabled={players.length < 2}
+            disabled={safePlayers.length < 2}
             className={`w-full py-5 rounded-2xl font-bold text-lg uppercase transition-all ${
-              players.length >= 2 
+              safePlayers.length >= 2 
                 ? 'bg-[#FF3401] text-white shadow-xl btn-watercolor' 
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
@@ -152,7 +150,6 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players, curren
         </div>
       )}
 
-      {/* Debug/Test Utility */}
       <button 
         onClick={onReset}
         className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-300 font-bold uppercase tracking-widest flex items-center gap-2 hover:text-[#FF3401] transition-colors"
