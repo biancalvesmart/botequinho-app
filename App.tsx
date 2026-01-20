@@ -10,7 +10,7 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_v9_resgate_bege'; // Nova sala pra garantir
+const DB_PATH = 'sala_v10_final_mesmo';
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
@@ -59,12 +59,10 @@ const App: React.FC = () => {
       const cleanData = processData(rawData);
       setGameState(cleanData);
       
-      // Se o jogo já começou e estou no lobby, entra
       if (cleanData.isStarted && route === AppRoute.LOBBY) {
          setRoute(AppRoute.HOME);
       }
       
-      // Inicializa sala se vazia
       if (!rawData) set(gameRef, cleanData);
     });
     return () => unsubscribe();
@@ -209,8 +207,6 @@ const App: React.FC = () => {
     return false;
   };
 
-  // --- AQUI ESTÁ A CORREÇÃO QUE VAI TIRAR A TELA BEGE ---
-  // Unifiquei a função para bater com o que o Shop.tsx espera (onBuySpecial)
   const handleSpecialPurchase = (cost: number, type: 'Saco' | 'Encomenda', data?: string) => {
     if (!currentPlayer) return;
     if (currentPlayer.coins < cost) {
@@ -227,7 +223,6 @@ const App: React.FC = () => {
         }), "Saco Surpresa", -cost);
         notify(`Ganhou: ${randomIng.name}`);
     } else if (type === 'Encomenda' && data) {
-        // A Lojinha manda o código do item no parametro 'data'
         const itemCode = data; 
         const ingredient = INGREDIENTS.find(i => i.code === itemCode);
         if(!ingredient) { notify('Item não existe', 'error'); return; }
@@ -240,12 +235,6 @@ const App: React.FC = () => {
         notify(`Encomenda recebida!`);
     }
   };
-
-  // Adaptação para o Shop Component
-  // O Shop chama: onBuySpecial(cost, 'Saco') ou onBuySpecial(cost, 'Encomenda')
-  // Mas para encomenda precisa do código. 
-  // No seu Shop.tsx atualizado, a encomenda chama onBuyEncomenda.
-  // VAMOS FAZER O SHOP FUNCIONAR COM O PROP GENÉRICO
   
   const purchaseSacoWrapper = (cost: number) => handleSpecialPurchase(cost, 'Saco');
   const purchaseEncomendaWrapper = (code: string, cost: number) => handleSpecialPurchase(cost, 'Encomenda', code);
@@ -309,19 +298,14 @@ const App: React.FC = () => {
               <>
                 {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} />}
                 
-                {/* AQUI ESTÁ A CORREÇÃO: Passamos as props que o Shop.tsx espera */}
                 {route === AppRoute.SHOP && (
                     <Shop 
                         coins={currentPlayer.coins} 
                         onBuy={purchaseIngredient} 
                         onBuySaco={purchaseSacoWrapper} 
                         onBuyEncomenda={purchaseEncomendaWrapper} 
-                        // Se o seu Shop.tsx estiver usando onBuySpecial, ele vai ignorar as de cima
-                        // Mas vou passar essa também pra garantir compatibilidade total
                         onBuySpecial={(cost, type) => {
                             if(type === 'Saco') purchaseSacoWrapper(cost);
-                            // Encomenda via onBuySpecial direto não tem código, então ignoramos aqui
-                            // pois o modal do Shop usa onBuyEncomenda
                         }}
                         updateBalance={updateBalance} 
                     />
@@ -334,8 +318,24 @@ const App: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* --- MENU DE NAVEGAÇÃO (DE VOLTA!) --- */}
+      {gameState.isStarted && (
+        <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
+          {[
+            { id: AppRoute.HOME, icon: HomeIcon, label: 'Lobby' },
+            { id: AppRoute.SHOP, icon: ShoppingBag, label: 'Lojinha' },
+            { id: AppRoute.BANK, icon: Landmark, label: 'Banco' },
+            { id: AppRoute.COOKBOOK, icon: BookOpen, label: 'Receitas' },
+          ].map((item) => (
+            <button key={item.id} onClick={() => setRoute(item.id)} className={`flex flex-col items-center gap-1 ${route === item.id ? 'text-[#FF3401]' : 'text-gray-400'}`}>
+              <item.icon size={26} />
+              <span className="text-[10px] font-bold uppercase">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
       
-      {/* NOTIFICAÇÃO Z-INDEX 200 */}
       {notification && (
         <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
           {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
