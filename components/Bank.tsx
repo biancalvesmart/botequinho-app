@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { PlayerData, FinancialEvent } from '../types';
-import { INGREDIENTS } from '../constants';
 import { Landmark, History, PlusCircle, MinusCircle, Repeat, X } from 'lucide-react';
 
 interface BankProps {
@@ -16,7 +15,7 @@ interface BankProps {
 const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBalance, onTrade, onNewRound }) => {
   const [showExtrato, setShowExtrato] = useState(false);
   const [showRefund, setShowRefund] = useState(false);
-  const [refundValue, setRefundValue] = useState(1);
+  const [refundValue, setRefundValue] = useState(''); // Mudei para string para usar input
   const [showTrade, setShowTrade] = useState(false);
   const [tradeTarget, setTradeTarget] = useState('');
   const [tradeType, setTradeType] = useState<'coins' | 'item'>('coins');
@@ -43,9 +42,12 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
   };
 
   const handleRefund = () => {
-    updateBalance(-refundValue, "Reembolso");
-    setShowRefund(false);
-    setRefundValue(1);
+    const val = parseInt(refundValue);
+    if (!isNaN(val) && val > 0 && val <= player.coins) {
+        updateBalance(-val, "Reembolso");
+        setShowRefund(false);
+        setRefundValue('');
+    }
   };
 
   return (
@@ -97,6 +99,30 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
         </button>
       </div>
 
+      {/* MODAL DEVOLVER (ATUALIZADO PARA TECLADO) */}
+      {showRefund && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-in fade-in duration-300">
+          <div className="paper-slip w-full max-w-xs rounded-3xl p-8 animate-in zoom-in duration-300 shadow-2xl">
+            <h3 className="text-2xl font-kalam text-black mb-6">Devolver moedas</h3>
+            <div className="flex flex-col items-center gap-4 mb-8">
+               <input 
+                type="number" 
+                placeholder="0"
+                value={refundValue} 
+                onChange={(e) => setRefundValue(e.target.value)}
+                className="w-full text-center text-5xl font-kalam text-[#FF3401] bg-transparent outline-none border-b-2 border-[#FF3401]/20 pb-2 placeholder:text-[#FF3401]/30"
+               />
+               <p className="text-[10px] text-gray-400 font-bold uppercase">Digite quanto quer devolver</p>
+            </div>
+            <div className="flex gap-4">
+              <button onClick={() => setShowRefund(false)} className="flex-1 py-4 font-bold text-gray-400 uppercase text-xs">Cancelar</button>
+              <button onClick={handleRefund} className="flex-1 bg-[#FF3401] text-white font-bold py-4 rounded-2xl btn-watercolor">Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXTRATO (Igual ao anterior) */}
       {showExtrato && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="paper-slip w-full max-w-sm rounded-3xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500 shadow-2xl">
@@ -126,29 +152,7 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
         </div>
       )}
 
-      {showRefund && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-in fade-in duration-300">
-          <div className="paper-slip w-full max-w-xs rounded-3xl p-8 animate-in zoom-in duration-300 shadow-2xl">
-            <h3 className="text-2xl font-kalam text-black mb-6">Devolver moedas</h3>
-            <div className="flex flex-col items-center gap-6 mb-8">
-               <div className="text-5xl font-kalam text-[#FF3401]">$ {refundValue}</div>
-               <input 
-                type="range" 
-                min="1" 
-                max={player.coins} 
-                value={refundValue} 
-                onChange={(e) => setRefundValue(parseInt(e.target.value))}
-                className="w-full accent-[#FF3401]"
-               />
-            </div>
-            <div className="flex gap-4">
-              <button onClick={() => setShowRefund(false)} className="flex-1 py-4 font-bold text-gray-400 uppercase text-xs">Cancelar</button>
-              <button onClick={handleRefund} className="flex-1 bg-[#FF3401] text-white font-bold py-4 rounded-2xl btn-watercolor">Confirmar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* TRADE MODAL (Igual ao anterior) */}
       {showTrade && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
           <div className="paper-slip w-full max-w-sm rounded-[3rem] p-10 animate-in zoom-in duration-300 shadow-2xl">
@@ -158,6 +162,11 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
             </div>
             
             <div className="space-y-6">
+              {/* ... (Conteúdo igual) ... */}
+              {/* Para economizar espaço aqui na resposta, mantenha o conteúdo do trade igual */}
+              {/* Se precisar, eu mando completo de novo */}
+              {/* VOU MANDAR COMPLETO PRA NÃO TER ERRO: */}
+              
               <div>
                 <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block mb-3">Escolha o alvo</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -199,17 +208,23 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
                   className="w-full bg-gray-50 border border-black/5 rounded-2xl px-4 py-5 font-bold text-center outline-none"
                 />
               ) : (
-                <select 
-                  value={tradeValue}
-                  onChange={(e) => setTradeValue(e.target.value)}
-                  className="w-full bg-gray-50 border border-black/5 rounded-2xl px-4 py-5 font-bold text-center outline-none"
-                >
-                  <option value="">Item...</option>
-                  {player.inventory.map((code, idx) => {
-                    const ing = INGREDIENTS.find(i => i.code === code);
-                    return <option key={idx} value={code}>{ing?.name}</option>
-                  })}
-                </select>
+                <div className="relative">
+                   <select 
+                    value={tradeValue}
+                    onChange={(e) => setTradeValue(e.target.value)}
+                    className="w-full bg-gray-50 border border-black/5 rounded-2xl px-4 py-5 font-bold text-center outline-none appearance-none"
+                   >
+                    <option value="">Selecione...</option>
+                    {/* Aqui eu poderia usar o INGREDIENTS.find para mostrar o nome */}
+                    {/* Mas como é um select simples, vamos manter pelo código no value, e nome no label */}
+                    {/* O ideal seria usar o componente de busca aqui também, mas vamos manter simples por enquanto */}
+                    {player.inventory.map((code, idx) => {
+                       // Pequeno hack para mostrar nome no select
+                       const ing = [...(require('../constants').INGREDIENTS)].find((i:any) => i.code === code);
+                       return <option key={idx} value={code}>{ing ? ing.name : code}</option>
+                    })}
+                   </select>
+                </div>
               )}
 
               <button 
