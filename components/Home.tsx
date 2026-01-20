@@ -16,13 +16,8 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode }) =
   const [inputCode, setInputCode] = useState('');
 
   const handleAddCode = () => {
-    // Tenta adicionar
     const success = onAddCode(inputCode);
-    
-    // SEMPRE limpa o input, independente de sucesso ou erro
     setInputCode('');
-
-    // Só fecha o modal se deu certo
     if (success) {
       setIsModalOpen(false);
     }
@@ -134,7 +129,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode }) =
                type="text"
                value={inputCode}
                onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-               placeholder="Ex: I-1-0-1"
+               placeholder="Ex: R-9-AL-1 ou I-1-0-1"
                className="w-full bg-gray-50 border border-black/5 rounded-2xl px-4 py-5 text-center font-mono text-xl focus:border-[#FFCA1B] outline-none mb-8"
             />
             <button 
