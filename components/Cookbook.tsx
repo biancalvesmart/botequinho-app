@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { RECIPES, STATES_MAP } from '../constants';
 import { Recipe } from '../types';
@@ -62,7 +61,7 @@ const Cookbook: React.FC = () => {
             <div 
               key={recipe.code}
               onClick={() => setActiveRecipe(recipe)}
-              className="paper-slip p-6 rounded-[2.5rem] flex items-center gap-5 group active:scale-[0.97] transition-all"
+              className="paper-slip p-6 rounded-[2.5rem] flex items-center gap-5 group active:scale-[0.97] transition-all cursor-pointer hover:shadow-lg"
             >
               <div className="w-20 h-20 bg-[#FFCA1B]/10 rounded-[1.5rem] flex items-center justify-center flex-shrink-0 border border-[#FFCA1B]/10">
                 <span className="text-[#FFCA1B] font-kalam text-3xl">{recipe.value}</span>
@@ -91,9 +90,10 @@ const Cookbook: React.FC = () => {
       {/* Detail Modal */}
       {activeRecipe && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="paper-slip w-full max-w-sm rounded-[3.5rem] p-10 torn-edge animate-in slide-in-from-bottom-8 duration-500 relative shadow-2xl overflow-hidden">
+          {/* REMOVIDO A CLASSE 'torn-edge' DAQUI */}
+          <div className="paper-slip w-full max-w-sm rounded-[3.5rem] p-10 animate-in slide-in-from-bottom-8 duration-500 relative shadow-2xl overflow-hidden">
             <div className="absolute top-0 right-0 p-8">
-              <button onClick={() => setActiveRecipe(null)} className="text-gray-400 hover:text-black transition-all"><X size={24}/></button>
+              <button onClick={() => setActiveRecipe(null)} className="text-gray-400 hover:text-black transition-all bg-white rounded-full p-2 shadow-sm"><X size={24}/></button>
             </div>
             
             <div className="flex flex-col items-center text-center mb-10">
@@ -104,7 +104,7 @@ const Cookbook: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-8 max-h-[50vh] overflow-y-auto pr-2">
+            <div className="space-y-8 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
               <div>
                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-[#FF3401] rounded-full"></div> Ingredientes
@@ -122,7 +122,7 @@ const Cookbook: React.FC = () => {
                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                    <div className="w-1.5 h-1.5 bg-[#FF3401] rounded-full"></div> Modo de Preparo
                 </h4>
-                <p className="text-black/80 text-sm leading-relaxed italic paper-slip p-6 rounded-3xl border border-black/5 shadow-inner">
+                <p className="text-black/80 text-sm leading-relaxed italic paper-slip p-6 rounded-3xl border border-black/5 shadow-inner bg-[#fffefc]">
                   "{activeRecipe.instructions}"
                 </p>
               </div>
