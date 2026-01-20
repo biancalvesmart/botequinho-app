@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Ingredient } from '../types';
 import { INGREDIENTS } from '../constants';
-import { Package, Search, Sparkles, Coins, RefreshCw } from 'lucide-react';
+import { Package, Search, Sparkles, Coins, RefreshCw, X } from 'lucide-react';
 
 interface ShopProps {
   coins: number;
   onBuy: (code: string, cost: number) => boolean;
-  onBuySpecial: (cost: number, type: 'Saco' | 'Encomenda') => void; // NOVA PROPRIEDADE
+  onBuySaco: (cost: number) => void;
+  onBuyEncomenda: (code: string, cost: number) => void;
   updateBalance: (amount: number, description: string) => void;
 }
 
-const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySpecial }) => {
+const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda }) => {
   const [shelfItems, setShelfItems] = useState<Ingredient[]>([]);
+  const [isEncomendaOpen, setIsEncomendaOpen] = useState(false);
+  const [encomendaCode, setEncomendaCode] = useState('');
 
   useEffect(() => { refreshShelf(); }, []);
 
@@ -27,6 +30,12 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySpecial }) => {
       const nextItem = available[Math.floor(Math.random() * available.length)];
       setShelfItems(prev => prev.map(item => item.code === ing.code ? nextItem : item));
     }
+  };
+
+  const handleConfirmEncomenda = () => {
+      onBuyEncomenda(encomendaCode.trim().toUpperCase(), 16);
+      setEncomendaCode('');
+      setIsEncomendaOpen(false);
   };
 
   return (
@@ -69,7 +78,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySpecial }) => {
             <h3 className="font-kalam text-2xl text-black leading-tight">Saco Surpresa</h3>
             <p className="text-[9px] text-gray-400 mb-4 font-bold uppercase tracking-widest">Item aleatório da pilha</p>
             <button 
-              onClick={() => onBuySpecial(4, 'Saco')}
+              onClick={() => onBuySaco(4)}
               className="bg-[#FFCA1B] text-black text-[10px] font-bold px-6 py-3 rounded-2xl flex items-center gap-2 btn-watercolor shadow-md border border-black/5"
             >
               <Coins size={14}/> $ 4.00
@@ -86,7 +95,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySpecial }) => {
             <h3 className="font-kalam text-2xl text-white leading-tight">A Encomenda</h3>
             <p className="text-[9px] text-white/60 mb-4 font-bold uppercase tracking-widest">Escolha item livremente</p>
             <button 
-              onClick={() => onBuySpecial(16, 'Encomenda')}
+              onClick={() => setIsEncomendaOpen(true)}
               className={`text-[10px] font-bold px-6 py-3 rounded-2xl flex items-center gap-2 transition-all ${
                 coins >= 16 ? 'bg-white text-black btn-watercolor' : 'bg-white/20 text-white/50 cursor-not-allowed'
               }`}
@@ -96,6 +105,33 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySpecial }) => {
           </div>
         </div>
       </div>
+
+      {/* MODAL DE ENCOMENDA */}
+      {isEncomendaOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+          <div className="paper-slip w-full max-w-xs rounded-[3rem] p-10 animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-8">
+               <h3 className="text-3xl font-kalam text-black">Encomendar</h3>
+               <button onClick={() => setIsEncomendaOpen(false)} className="text-gray-400"><X size={24}/></button>
+            </div>
+            <p className="text-xs text-gray-500 mb-4 font-bold uppercase tracking-wide">Digite o código do ingrediente:</p>
+            <input 
+               autoFocus
+               type="text"
+               value={encomendaCode}
+               onChange={(e) => setEncomendaCode(e.target.value.toUpperCase())}
+               placeholder="Ex: I-1-0-1"
+               className="w-full bg-gray-50 border border-black/5 rounded-2xl px-4 py-5 text-center font-mono text-xl focus:border-[#FFCA1B] outline-none mb-8"
+            />
+            <button 
+               onClick={handleConfirmEncomenda}
+               className="w-full bg-[#FF3401] text-white font-bold py-5 rounded-2xl btn-watercolor uppercase text-sm"
+            >
+               Confirmar ($16)
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
