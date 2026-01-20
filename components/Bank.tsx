@@ -99,7 +99,6 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
 
       {showExtrato && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          {/* REMOVIDO A CLASSE 'torn-edge' DAQUI PARA MELHORAR QUALIDADE */}
           <div className="paper-slip w-full max-w-sm rounded-3xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500 shadow-2xl">
             <div className="bg-[#fdfcf0] p-6 border-b border-black/5 flex justify-between items-center">
               <div>
@@ -178,13 +177,13 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
 
               <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-black/5">
                 <button 
-                  onClick={() => setTradeType('coins')}
+                  onClick={() => { setTradeType('coins'); setTradeValue(''); }}
                   className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase transition-all ${tradeType === 'coins' ? 'bg-white text-black shadow-sm' : 'text-gray-400'}`}
                 >
                   Moedas
                 </button>
                 <button 
-                  onClick={() => setTradeType('item')}
+                  onClick={() => { setTradeType('item'); setTradeValue(''); }}
                   className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase transition-all ${tradeType === 'item' ? 'bg-white text-black shadow-sm' : 'text-gray-400'}`}
                 >
                   Item
