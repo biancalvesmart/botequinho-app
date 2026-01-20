@@ -3,40 +3,38 @@ import { AppRoute, GameState, PlayerData } from './types';
 import { INGREDIENTS, RECIPES } from './constants';
 import { Home, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-// Firebase Imports
 import { db } from './lib/firebase';
 import { ref, onValue, set } from 'firebase/database';
 
-// Components
 import Lobby from './components/Lobby';
 import GameHome from './components/Home';
 import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_comum_v1';
+const DB_PATH = 'sala_oficial_01';
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
   const [localName, setLocalName] = useState<string>(() => sessionStorage.getItem('local_player_name') || '');
 
-  // ESTADO INICIAL SEGURO
+  
   const [gameState, setGameState] = useState<GameState>({
       isStarted: false,
-      players: [], // Começa sempre como array vazio
+      players: [], 
       financialLog: []
   });
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
-  // 1. OUVINTE DO FIREBASE BLINDADO 🛡️
+  
   useEffect(() => {
     const gameRef = ref(db, DB_PATH);
     
     const unsubscribe = onValue(gameRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // AQUI ESTÁ O SEGREDO: Se players vier 'undefined', forçamos virar []
+        
         const safeData = {
             ...data,
             players: Array.isArray(data.players) ? data.players : [],
@@ -49,7 +47,7 @@ const App: React.FC = () => {
            setRoute(AppRoute.HOME);
         }
       } else {
-        // Se não tiver nada no banco, cria o estado inicial
+       
         const initialState = { isStarted: false, players: [], financialLog: [] };
         set(gameRef, initialState);
         setGameState(initialState);
@@ -64,9 +62,9 @@ const App: React.FC = () => {
      set(gameRef, newState);
   };
 
-  // 2. USEMEMO BLINDADO 🛡️
+  
   const currentPlayer = useMemo(() => {
-    // Se por milagre players for null, retorna undefined sem quebrar
+  
     if (!gameState.players || !Array.isArray(gameState.players)) return undefined;
     return gameState.players.find(p => p.name === localName);
   }, [gameState.players, localName]);
@@ -76,7 +74,7 @@ const App: React.FC = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // --- AÇÕES DO JOGO ---
+  
 
   const handleJoin = (name: string) => {
     const safePlayers = Array.isArray(gameState.players) ? gameState.players : [];
@@ -129,7 +127,7 @@ const App: React.FC = () => {
   };
 
   const updatePlayerData = useCallback((name: string, updater: (p: PlayerData) => PlayerData, description?: string, amount?: number, type?: 'gain' | 'loss') => {
-    // Proteção extra antes de atualizar
+   
     const safePlayers = Array.isArray(gameState.players) ? [...gameState.players] : [];
     const playerIdx = safePlayers.findIndex(p => p.name === name);
     
