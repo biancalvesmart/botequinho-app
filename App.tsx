@@ -2,8 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AppRoute, GameState, PlayerData } from './types';
 import { INGREDIENTS, RECIPES } from './constants';
 import { Home as HomeIcon, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
-
-// Firebase Imports
 import { db } from './lib/firebase';
 import { ref, onValue, set } from 'firebase/database';
 
@@ -14,19 +12,15 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_oficial_final_v2'; // Mudei a sala pra garantir zero sujeira
+const DB_PATH = 'sala_v3_blindada'; // Nova sala para garantir zero erros
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
   const [localName, setLocalName] = useState<string>(() => {
-    try {
-      return sessionStorage.getItem('local_player_name') || '';
-    } catch {
-      return '';
-    }
+    try { return sessionStorage.getItem('local_player_name') || ''; } catch { return ''; }
   });
 
-  // ESTADO INICIAL ULTRA-SEGURO
+  // Estado Inicial Seguro
   const [gameState, setGameState] = useState<GameState>({
       isStarted: false,
       players: [],
@@ -35,109 +29,84 @@ const App: React.FC = () => {
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
-  useEffect(() => {
-    console.log("Iniciando conexão com Firebase...");
-    const gameRef = ref(db, DB_PATH);
+  // --- FUNÇÃO DE LIMPEZA DE DADOS (A SALVAÇÃO) ---
+  const processData = (data: any): GameState => {
+    if (!data) return { isStarted: false, players: [], financialLog: [] };
     
+    let safePlayers: PlayerData[] = [];
+    
+    // 1. Resolve se vier como Array (com buracos) ou Objeto
+    if (Array.isArray(data.players)) {
+      safePlayers = data.players.filter((p: any) => !!p); // Remove null/undefined
+    } else if (typeof data.players === 'object' && data.players !== null) {
+      safePlayers = Object.values(data.players); // Converte objeto em lista
+    }
+    
+    // 2. Garante que todo jogador tenha inventário e panelas
+    safePlayers = safePlayers.map(p => ({
+      name: p.name || 'Desconhecido',
+      coins: typeof p.coins === 'number' ? p.coins : 0,
+      inventory: Array.isArray(p.inventory) ? p.inventory : [],
+      pots: Array.isArray(p.pots) ? p.pots : [
+          { id: 0, recipeCode: null, startTime: null },
+          { id: 1, recipeCode: null, startTime: null }
+        ],
+      hasTransactedThisRound: !!p.hasTransactedThisRound
+    }));
+
+    return {
+      isStarted: !!data.isStarted,
+      players: safePlayers,
+      financialLog: Array.isArray(data.financialLog) ? data.financialLog : []
+    };
+  };
+
+  useEffect(() => {
+    const gameRef = ref(db, DB_PATH);
     const unsubscribe = onValue(gameRef, (snapshot) => {
-      const data = snapshot.val();
-      console.log("Dados recebidos:", data);
+      const rawData = snapshot.val();
+      const cleanData = processData(rawData); // Limpa os dados antes de usar
+      
+      setGameState(cleanData);
 
-      if (data) {
-        // BLINDAGEM MÁXIMA: Se vier null/undefined, força ser array vazio
-        const safePlayers = Array.isArray(data.players) ? data.players : [];
-        const safeLog = Array.isArray(data.financialLog) ? data.financialLog : [];
-        
-        const safeData = {
-            ...data,
-            players: safePlayers,
-            financialLog: safeLog
-        };
-        
-        setGameState(safeData);
-
-        if (safeData.isStarted && route === AppRoute.LOBBY) {
-           setRoute(AppRoute.HOME);
-        }
-      } else {
-        console.log("Sala vazia, criando estado inicial...");
-        const initialState = { isStarted: false, players: [], financialLog: [] };
-        set(gameRef, initialState);
-        setGameState(initialState);
+      if (cleanData.isStarted && route === AppRoute.LOBBY) {
+         setRoute(AppRoute.HOME);
+      }
+      
+      // Se não tiver dados, cria a sala inicial
+      if (!rawData) {
+        set(gameRef, cleanData);
       }
     });
-
     return () => unsubscribe();
   }, [route]);
-
-  // USEMEMO COM PROTEÇÃO DE ERRO
-  const currentPlayer = useMemo(() => {
-    // Se players não existir, retorna undefined sem quebrar
-    if (!gameState || !gameState.players || !Array.isArray(gameState.players)) {
-      return undefined;
-    }
-    return gameState.players.find(p => p && p.name === localName);
-  }, [gameState, localName]);
-
-  const notify = (message: string, type: 'success' | 'error' = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
 
   const saveToFirebase = (newState: GameState) => {
      const gameRef = ref(db, DB_PATH);
      set(gameRef, newState);
   };
 
-  // --- ACTIONS ---
+  const currentPlayer = useMemo(() => {
+    return gameState.players.find(p => p.name === localName);
+  }, [gameState.players, localName]);
 
-  const updatePlayerData = useCallback((name: string, updater: (p: PlayerData) => PlayerData, description?: string, amount?: number, type?: 'gain' | 'loss') => {
-    const currentPlayers = Array.isArray(gameState.players) ? [...gameState.players] : [];
-    const playerIdx = currentPlayers.findIndex(p => p.name === name);
-    
-    if (playerIdx === -1) return;
-
-    currentPlayers[playerIdx] = updater(currentPlayers[playerIdx]);
-
-    const currentLog = Array.isArray(gameState.financialLog) ? [...gameState.financialLog] : [];
-    
-    if (description && amount !== undefined) {
-      currentLog.unshift({
-        id: Math.random().toString(36).substr(2, 9),
-        type: type || (amount >= 0 ? 'gain' : 'loss'),
-        amount: Math.abs(amount),
-        description: `${name}: ${description}`,
-        timestamp: Date.now()
-      });
-    }
-
-    saveToFirebase({
-      ...gameState,
-      players: currentPlayers,
-      financialLog: currentLog.slice(0, 50)
-    });
-  }, [gameState]); 
-
-  const updateBalance = (amount: number, description: string) => {
-    updatePlayerData(localName, p => ({
-      ...p,
-      coins: Math.max(0, p.coins + amount)
-    }), description, amount);
+  const notify = (message: string, type: 'success' | 'error' = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
   };
 
+  // --- ACTIONS ---
+
   const handleJoin = (name: string) => {
-    const safePlayers = Array.isArray(gameState.players) ? gameState.players : [];
-    
-    if (safePlayers.length >= 4 && !safePlayers.find(p => p.name === name)) {
+    if (gameState.players.length >= 4 && !gameState.players.find(p => p.name === name)) {
       notify("Mesa cheia!", "error");
       return;
     }
-
     setLocalName(name);
     sessionStorage.setItem('local_player_name', name);
     
-    const playerExists = safePlayers.find(p => p.name === name);
-    if (playerExists) {
+    const existing = gameState.players.find(p => p.name === name);
+    if (existing) {
        if (gameState.isStarted) setRoute(AppRoute.HOME);
        return;
     }
@@ -155,7 +124,7 @@ const App: React.FC = () => {
 
     saveToFirebase({
       ...gameState,
-      players: [...safePlayers, newPlayer]
+      players: [...gameState.players, newPlayer]
     });
   };
 
@@ -167,13 +136,34 @@ const App: React.FC = () => {
     window.location.reload();
   };
 
-  // --- GAMEPLAY ACTIONS ---
+  // --- HELPER DE UPDATE SEGURO ---
+  const updatePlayerData = useCallback((name: string, updater: (p: PlayerData) => PlayerData, description?: string, amount?: number, type?: 'gain' | 'loss') => {
+    const idx = gameState.players.findIndex(p => p.name === name);
+    if (idx === -1) return;
+
+    const newPlayers = [...gameState.players];
+    newPlayers[idx] = updater(newPlayers[idx]);
+
+    const newLog = description ? [{
+        id: Math.random().toString(36).substr(2, 9),
+        type: type || (amount && amount >= 0 ? 'gain' : 'loss'),
+        amount: amount ? Math.abs(amount) : 0,
+        description: `${name}: ${description}`,
+        timestamp: Date.now()
+    } as const, ...gameState.financialLog] : gameState.financialLog;
+
+    saveToFirebase({ ...gameState, players: newPlayers, financialLog: newLog.slice(0, 50) });
+  }, [gameState]);
+
+  const updateBalance = (amount: number, description: string) => {
+    updatePlayerData(localName, p => ({ ...p, coins: Math.max(0, p.coins + amount) }), description, amount);
+  };
+
+  // --- GAME ACTIONS ---
 
   const addItemByCode = (code: string) => {
-    // Proteção contra imports vazios
     const safeIngs = INGREDIENTS || [];
     const safeRecipes = RECIPES || [];
-
     const ingredient = safeIngs.find(i => i.code === code);
     const recipe = safeRecipes.find(r => r.code === code);
 
@@ -181,9 +171,9 @@ const App: React.FC = () => {
       updatePlayerData(localName, p => ({ ...p, inventory: [...p.inventory, code] }));
       notify(`Item: ${ingredient.name}`);
       return true;
-    } else if (recipe) {
-      const emptyPotIdx = currentPlayer?.pots.findIndex(pot => pot.recipeCode === null);
-      if (emptyPotIdx !== undefined && emptyPotIdx !== -1) {
+    } else if (recipe && currentPlayer) {
+      const emptyPotIdx = currentPlayer.pots.findIndex(pot => pot.recipeCode === null);
+      if (emptyPotIdx !== -1) {
         updatePlayerData(localName, p => {
           const newPots = [...p.pots];
           newPots[emptyPotIdx] = { ...newPots[emptyPotIdx], recipeCode: code, startTime: Date.now() };
@@ -193,17 +183,19 @@ const App: React.FC = () => {
         return true;
       } else {
         notify('Panelas cheias!', 'error');
-        return false;
       }
+    } else {
+      notify('Código inválido!', 'error');
     }
     return false;
   };
 
   const deliverPot = (potId: number) => {
-    const pot = currentPlayer?.pots.find(p => p.id === potId);
+    if (!currentPlayer) return;
+    const pot = currentPlayer.pots.find(p => p.id === potId);
     if (!pot || !pot.recipeCode) return;
-    const safeRecipes = RECIPES || [];
-    const recipe = safeRecipes.find(r => r.code === pot.recipeCode);
+    
+    const recipe = (RECIPES || []).find(r => r.code === pot.recipeCode);
     if (recipe) {
       updateBalance(recipe.value, `Venda: ${recipe.name}`);
       updatePlayerData(localName, p => {
@@ -224,9 +216,9 @@ const App: React.FC = () => {
   };
 
   const purchaseIngredient = (code: string, cost: number) => {
-    if ((currentPlayer?.coins || 0) >= cost) {
-      const safeIngs = INGREDIENTS || [];
-      const ingredient = safeIngs.find(i => i.code === code);
+    if (!currentPlayer) return false;
+    if (currentPlayer.coins >= cost) {
+      const ingredient = (INGREDIENTS || []).find(i => i.code === code);
       updatePlayerData(localName, p => ({
         ...p,
         coins: p.coins - cost,
@@ -240,48 +232,47 @@ const App: React.FC = () => {
   };
 
   const handleTrade = (targetPlayer: string, type: 'coins' | 'item', data: any) => {
-    // ... lógica de troca simplificada para economizar espaço, mas funcional ...
-    const safePlayers = Array.isArray(gameState.players) ? [...gameState.players] : [];
-    const senderIdx = safePlayers.findIndex(p => p.name === localName);
-    const receiverIdx = safePlayers.findIndex(p => p.name === targetPlayer);
+    const senderIdx = gameState.players.findIndex(p => p.name === localName);
+    const receiverIdx = gameState.players.findIndex(p => p.name === targetPlayer);
     if (senderIdx === -1 || receiverIdx === -1) return;
 
-    const sender = { ...safePlayers[senderIdx] };
-    const receiver = { ...safePlayers[receiverIdx] };
+    const sender = { ...gameState.players[senderIdx] };
+    const receiver = { ...gameState.players[receiverIdx] };
 
     if (type === 'coins') {
-       const amount = data as number;
-       if (sender.coins < amount) return;
-       sender.coins -= amount;
-       receiver.coins += amount;
+       if (sender.coins < (data as number)) return;
+       sender.coins -= (data as number);
+       receiver.coins += (data as number);
     } else {
-       const itemCode = data as string;
-       const itemIdx = sender.inventory.indexOf(itemCode);
+       const itemIdx = sender.inventory.indexOf(data as string);
        if (itemIdx === -1) return;
        sender.inventory.splice(itemIdx, 1);
-       receiver.inventory.push(itemCode);
+       receiver.inventory.push(data as string);
     }
     sender.hasTransactedThisRound = true;
-    safePlayers[senderIdx] = sender;
-    safePlayers[receiverIdx] = receiver;
-    saveToFirebase({ ...gameState, players: safePlayers });
+    
+    const newPlayers = [...gameState.players];
+    newPlayers[senderIdx] = sender;
+    newPlayers[receiverIdx] = receiver;
+    saveToFirebase({ ...gameState, players: newPlayers });
+    notify(`Enviado para ${targetPlayer}`);
   };
 
   const resetRoundTransaction = () => {
     updatePlayerData(localName, p => ({ ...p, hasTransactedThisRound: false }), "Bônus Rodada", 2);
   };
 
-  // RENDERIZAÇÃO SEGURA
-  const safePlayerList = (Array.isArray(gameState.players) ? gameState.players : []).map(p => p.name);
-  const safeLog = Array.isArray(gameState.financialLog) ? gameState.financialLog : [];
-
   return (
     <div className="flex flex-col min-h-screen watercolor-wash overflow-hidden max-w-md mx-auto relative shadow-2xl">
       {gameState.isStarted && currentPlayer && (
         <div className="bg-[#fffef2]/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-black/5 shadow-sm z-50">
-           {/* Header simplificado */}
-           <span className="font-kalam text-xl">{localName}</span>
-           <span className="text-[#FF3401] font-bold">$ {currentPlayer.coins}</span>
+           <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-[#FFCA1B] rounded-full flex items-center justify-center font-bold text-black border-2 border-black/10">
+                {localName.charAt(0).toUpperCase()}
+             </div>
+             <span className="font-kalam text-xl">{localName}</span>
+           </div>
+           <span className="text-[#FF3401] font-bold text-lg">$ {currentPlayer.coins}</span>
         </div>
       )}
 
@@ -291,7 +282,7 @@ const App: React.FC = () => {
             onJoin={handleJoin} 
             onStart={handleStartMatch} 
             onReset={handleResetSession}
-            players={safePlayerList} 
+            players={gameState.players.map(p => p.name)} 
             currentName={localName} 
           />
         ) : (
@@ -300,7 +291,7 @@ const App: React.FC = () => {
               <>
                 {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} />}
                 {route === AppRoute.SHOP && <Shop coins={currentPlayer.coins} onBuy={purchaseIngredient} updateBalance={updateBalance} />}
-                {route === AppRoute.BANK && <Bank player={currentPlayer} log={safeLog} players={safePlayerList} localName={localName} updateBalance={updateBalance} onTrade={handleTrade} onNewRound={resetRoundTransaction} />}
+                {route === AppRoute.BANK && <Bank player={currentPlayer} log={gameState.financialLog} players={gameState.players.map(p => p.name)} localName={localName} updateBalance={updateBalance} onTrade={handleTrade} onNewRound={resetRoundTransaction} />}
                 {route === AppRoute.COOKBOOK && <Cookbook />}
               </>
             )}
@@ -308,7 +299,6 @@ const App: React.FC = () => {
         )}
       </div>
       
-      {/* Menu de Navegação */}
       {gameState.isStarted && (
         <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
           {[
@@ -326,8 +316,9 @@ const App: React.FC = () => {
       )}
       
       {notification && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-black text-white px-6 py-3 rounded-full shadow-xl">
-          {notification.message}
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
+          {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
+          <span className="font-bold text-sm">{notification.message}</span>
         </div>
       )}
     </div>
