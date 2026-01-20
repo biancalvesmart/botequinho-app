@@ -296,7 +296,8 @@ const App: React.FC = () => {
           <>
             {currentPlayer && (
               <>
-                {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} />}
+                {/* AQUI ESTAVA FALTANDO O PROP onResetSession, AGORA ESTÁ CORRIGIDO: */}
+                {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} onResetSession={handleResetSession} />}
                 
                 {route === AppRoute.SHOP && (
                     <Shop 
@@ -319,7 +320,7 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* --- MENU DE NAVEGAÇÃO (DE VOLTA!) --- */}
+      {/* --- MENU DE NAVEGAÇÃO --- */}
       {gameState.isStarted && (
         <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
           {[
