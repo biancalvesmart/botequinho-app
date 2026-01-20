@@ -1,53 +1,55 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AppRoute, GameState, PlayerData } from './types';
 import { INGREDIENTS, RECIPES } from './constants';
-import { Home, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Home as HomeIcon, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 
+// Firebase Imports
 import { db } from './lib/firebase';
 import { ref, onValue, set } from 'firebase/database';
 
+// Components
 import Lobby from './components/Lobby';
 import GameHome from './components/Home';
 import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_oficial_01';
+// Mudei o nome da sala para garantir que comece zerado e sem erros antigos
+const DB_PATH = 'sala_oficial_nordeste_v1';
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
   const [localName, setLocalName] = useState<string>(() => sessionStorage.getItem('local_player_name') || '');
 
-  
   const [gameState, setGameState] = useState<GameState>({
       isStarted: false,
-      players: [], 
+      players: [],
       financialLog: []
   });
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
-  
+  // --- CONEXÃO COM FIREBASE ---
   useEffect(() => {
     const gameRef = ref(db, DB_PATH);
     
     const unsubscribe = onValue(gameRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        
+        // Proteção contra dados vazios
         const safeData = {
             ...data,
             players: Array.isArray(data.players) ? data.players : [],
             financialLog: Array.isArray(data.financialLog) ? data.financialLog : []
         };
-        
         setGameState(safeData);
 
+        // Se o jogo começou e estou no lobby, entra
         if (safeData.isStarted && route === AppRoute.LOBBY) {
            setRoute(AppRoute.HOME);
         }
       } else {
-       
+        // Cria sala nova se não existir
         const initialState = { isStarted: false, players: [], financialLog: [] };
         set(gameRef, initialState);
         setGameState(initialState);
@@ -62,9 +64,7 @@ const App: React.FC = () => {
      set(gameRef, newState);
   };
 
-  
   const currentPlayer = useMemo(() => {
-  
     if (!gameState.players || !Array.isArray(gameState.players)) return undefined;
     return gameState.players.find(p => p.name === localName);
   }, [gameState.players, localName]);
@@ -74,60 +74,9 @@ const App: React.FC = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  
-
-  const handleJoin = (name: string) => {
-    const safePlayers = Array.isArray(gameState.players) ? gameState.players : [];
-    
-    if (safePlayers.length >= 4 && !safePlayers.find(p => p.name === name)) {
-      notify("Mesa cheia!", "error");
-      return;
-    }
-
-    setLocalName(name);
-    sessionStorage.setItem('local_player_name', name);
-    
-    const playerExists = safePlayers.find(p => p.name === name);
-    
-    if (playerExists) {
-       if (gameState.isStarted) setRoute(AppRoute.HOME);
-       return;
-    }
-
-    const newPlayer: PlayerData = {
-      name,
-      coins: 0,
-      inventory: [],
-      pots: [
-        { id: 0, recipeCode: null, startTime: null },
-        { id: 1, recipeCode: null, startTime: null }
-      ],
-      hasTransactedThisRound: false
-    };
-
-    const newState = {
-      ...gameState,
-      players: [...safePlayers, newPlayer]
-    };
-    
-    saveToFirebase(newState);
-    notify(`Bem-vindo, ${name}!`);
-  };
-
-  const handleStartMatch = () => {
-    const newState = { ...gameState, isStarted: true };
-    saveToFirebase(newState);
-  };
-
-  const handleResetSession = () => {
-    const cleanState = { isStarted: false, players: [], financialLog: [] };
-    saveToFirebase(cleanState);
-    sessionStorage.removeItem('local_player_name');
-    window.location.reload();
-  };
+  // --- LÓGICA DO JOGO ---
 
   const updatePlayerData = useCallback((name: string, updater: (p: PlayerData) => PlayerData, description?: string, amount?: number, type?: 'gain' | 'loss') => {
-   
     const safePlayers = Array.isArray(gameState.players) ? [...gameState.players] : [];
     const playerIdx = safePlayers.findIndex(p => p.name === name);
     
@@ -163,6 +112,52 @@ const App: React.FC = () => {
     }), description, amount);
   };
 
+  // Ações do Lobby
+  const handleJoin = (name: string) => {
+    const safePlayers = Array.isArray(gameState.players) ? gameState.players : [];
+    
+    if (safePlayers.length >= 4 && !safePlayers.find(p => p.name === name)) {
+      notify("Mesa cheia!", "error");
+      return;
+    }
+
+    setLocalName(name);
+    sessionStorage.setItem('local_player_name', name);
+    
+    const playerExists = safePlayers.find(p => p.name === name);
+    if (playerExists) {
+       if (gameState.isStarted) setRoute(AppRoute.HOME);
+       return;
+    }
+
+    const newPlayer: PlayerData = {
+      name,
+      coins: 10, // Começa com 10 moedas pra facilitar o teste
+      inventory: [],
+      pots: [
+        { id: 0, recipeCode: null, startTime: null },
+        { id: 1, recipeCode: null, startTime: null }
+      ],
+      hasTransactedThisRound: false
+    };
+
+    saveToFirebase({
+      ...gameState,
+      players: [...safePlayers, newPlayer]
+    });
+  };
+
+  const handleStartMatch = () => {
+    saveToFirebase({ ...gameState, isStarted: true });
+  };
+
+  const handleResetSession = () => {
+    saveToFirebase({ isStarted: false, players: [], financialLog: [] });
+    sessionStorage.removeItem('local_player_name');
+    window.location.reload();
+  };
+
+  // Ações da Casa (Home)
   const addItemByCode = (code: string) => {
     const ingredient = INGREDIENTS.find(i => i.code === code);
     const recipe = RECIPES.find(r => r.code === code);
@@ -198,14 +193,13 @@ const App: React.FC = () => {
     if (!pot || !pot.recipeCode) return;
     const recipe = RECIPES.find(r => r.code === pot.recipeCode);
     if (recipe) {
-      const reward = Math.ceil(recipe.value / 3);
-      updateBalance(reward, `Venda: ${recipe.name}`);
+      updateBalance(recipe.value, `Venda: ${recipe.name}`);
       updatePlayerData(localName, p => {
         const newPots = [...p.pots];
         newPots[potId] = { ...newPots[potId], recipeCode: null, startTime: null };
         return { ...p, pots: newPots };
       });
-      notify(`+${reward} moedas!`);
+      notify(`+${recipe.value} moedas!`);
     }
   };
 
@@ -218,6 +212,7 @@ const App: React.FC = () => {
     notify('Receita descartada');
   };
 
+  // Ações da Loja (Shop)
   const purchaseIngredient = (code: string, cost: number) => {
     if ((currentPlayer?.coins || 0) >= cost) {
       const ingredient = INGREDIENTS.find(i => i.code === code);
@@ -234,6 +229,7 @@ const App: React.FC = () => {
     return false;
   };
 
+  // Ações do Banco (Bank)
   const handleTrade = (targetPlayer: string, type: 'coins' | 'item', data: any) => {
     if (currentPlayer?.hasTransactedThisRound) {
       notify('Apenas 1 troca por rodada!', 'error');
@@ -286,6 +282,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen watercolor-wash overflow-hidden max-w-md mx-auto relative shadow-2xl">
+      {/* Top Bar (Header) */}
       {gameState.isStarted && currentPlayer && (
         <div className="bg-[#fffef2]/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-black/5 shadow-sm z-50">
           <div className="flex items-center gap-3">
@@ -293,7 +290,7 @@ const App: React.FC = () => {
                 {localName.charAt(0).toUpperCase() || '?'}
              </div>
              <div className="leading-none">
-               <span className="font-kalam text-xl text-black block">{localName}</span>
+               <span className="font-kalam text-xl text-black block truncate max-w-[120px]">{localName}</span>
                <span className="text-[10px] uppercase font-bold text-gray-400">Na Mesa</span>
              </div>
           </div>
@@ -303,6 +300,7 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto pb-28">
         {!gameState.isStarted ? (
           <Lobby 
@@ -326,8 +324,9 @@ const App: React.FC = () => {
         )}
       </div>
 
+      {/* Notifications */}
       {notification && (
-        <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${
           notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'
         }`}>
           {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
@@ -335,10 +334,11 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Bottom Navigation */}
       {gameState.isStarted && (
         <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
           {[
-            { id: AppRoute.HOME, icon: Home, label: 'Lobby' },
+            { id: AppRoute.HOME, icon: HomeIcon, label: 'Lobby' },
             { id: AppRoute.SHOP, icon: ShoppingBag, label: 'Lojinha' },
             { id: AppRoute.BANK, icon: Landmark, label: 'Banco' },
             { id: AppRoute.COOKBOOK, icon: BookOpen, label: 'Receitas' },
