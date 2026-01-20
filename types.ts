@@ -10,17 +10,15 @@ export interface Ingredient {
   code: string;
   name: string;
   score: number; 
-  cost?: number; 
 }
 
 export interface Recipe {
   code: string;
   name: string;
   value: number;
-  state?: string;        
-  ingredients?: string[]; 
-  inputs?: string[];      
-  instructions?: string;  
+  state: string;          
+  ingredients: string[];  
+  instructions: string;   
 }
 
 export interface Pot {
