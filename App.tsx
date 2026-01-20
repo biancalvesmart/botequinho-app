@@ -10,7 +10,7 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_v8_calculo_correto'; // Nova sala para garantir tudo limpo
+const DB_PATH = 'sala_v9_resgate_bege'; // Nova sala pra garantir
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
@@ -26,14 +26,17 @@ const App: React.FC = () => {
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
+  // --- TRATAMENTO DE DADOS ---
   const processData = (data: any): GameState => {
     if (!data) return { isStarted: false, players: [], financialLog: [] };
     let safePlayers: PlayerData[] = [];
+    
     if (Array.isArray(data.players)) {
       safePlayers = data.players.filter((p: any) => !!p);
     } else if (typeof data.players === 'object' && data.players !== null) {
       safePlayers = Object.values(data.players);
     }
+    
     safePlayers = safePlayers.map(p => ({
       name: p.name || 'Desconhecido',
       coins: typeof p.coins === 'number' ? p.coins : 0,
@@ -41,6 +44,7 @@ const App: React.FC = () => {
       pots: Array.isArray(p.pots) ? p.pots : [{ id: 0, recipeCode: null, startTime: null }, { id: 1, recipeCode: null, startTime: null }],
       hasTransactedThisRound: !!p.hasTransactedThisRound
     }));
+
     return {
       isStarted: !!data.isStarted,
       players: safePlayers,
@@ -54,7 +58,13 @@ const App: React.FC = () => {
       const rawData = snapshot.val();
       const cleanData = processData(rawData);
       setGameState(cleanData);
-      if (cleanData.isStarted && route === AppRoute.LOBBY) setRoute(AppRoute.HOME);
+      
+      // Se o jogo já começou e estou no lobby, entra
+      if (cleanData.isStarted && route === AppRoute.LOBBY) {
+         setRoute(AppRoute.HOME);
+      }
+      
+      // Inicializa sala se vazia
       if (!rawData) set(gameRef, cleanData);
     });
     return () => unsubscribe();
@@ -75,8 +85,10 @@ const App: React.FC = () => {
   const updatePlayerData = useCallback((name: string, updater: (p: PlayerData) => PlayerData, description?: string, amount?: number, type?: 'gain' | 'loss') => {
     const idx = gameState.players.findIndex(p => p.name === name);
     if (idx === -1) return;
+    
     const newPlayers = [...gameState.players];
     newPlayers[idx] = updater(newPlayers[idx]);
+    
     const newLog = description ? [{
         id: Math.random().toString(36).substr(2, 9),
         type: type || (amount && amount >= 0 ? 'gain' : 'loss'),
@@ -84,12 +96,15 @@ const App: React.FC = () => {
         description: `${name}: ${description}`,
         timestamp: Date.now()
     } as const, ...gameState.financialLog] : gameState.financialLog;
+    
     saveToFirebase({ ...gameState, players: newPlayers, financialLog: newLog.slice(0, 50) });
   }, [gameState]);
 
   const updateBalance = (amount: number, description: string) => {
     updatePlayerData(localName, p => ({ ...p, coins: Math.max(0, p.coins + amount) }), description, amount);
   };
+
+  // --- ACTIONS ---
 
   const handleJoin = (name: string) => {
     if (gameState.players.length >= 4 && !gameState.players.find(p => p.name === name)) {
@@ -98,10 +113,12 @@ const App: React.FC = () => {
     }
     setLocalName(name);
     sessionStorage.setItem('local_player_name', name);
+    
     if (gameState.players.find(p => p.name === name)) {
        if (gameState.isStarted) setRoute(AppRoute.HOME);
        return;
     }
+    
     const newPlayer: PlayerData = {
       name,
       coins: 0,
@@ -109,10 +126,12 @@ const App: React.FC = () => {
       pots: [{ id: 0, recipeCode: null, startTime: null }, { id: 1, recipeCode: null, startTime: null }],
       hasTransactedThisRound: false
     };
+    
     saveToFirebase({ ...gameState, players: [...gameState.players, newPlayer] });
   };
 
   const handleStartMatch = () => saveToFirebase({ ...gameState, isStarted: true });
+  
   const handleResetSession = () => {
     saveToFirebase({ isStarted: false, players: [], financialLog: [] });
     sessionStorage.removeItem('local_player_name');
@@ -147,7 +166,6 @@ const App: React.FC = () => {
     return false;
   };
 
-  // --- CORREÇÃO PRINCIPAL AQUI ---
   const deliverPot = (potId: number) => {
     if (!currentPlayer) return;
     const pot = currentPlayer.pots.find(p => p.id === potId);
@@ -155,19 +173,12 @@ const App: React.FC = () => {
     
     const recipe = (RECIPES || []).find(r => r.code === pot.recipeCode);
     if (recipe) {
-      // Regra: Valor / 3 arredondado para CIMA
       const reward = Math.ceil(recipe.value / 3);
-
-      // ATUALIZAÇÃO ÚNICA (Soma moeda + Limpa panela ao mesmo tempo)
+      
       updatePlayerData(localName, p => {
         const newPots = [...p.pots];
         newPots[potId] = { ...newPots[potId], recipeCode: null, startTime: null };
-        
-        return { 
-            ...p, 
-            coins: p.coins + reward, // <--- O dinheiro entra aqui junto com a limpeza
-            pots: newPots 
-        };
+        return { ...p, coins: p.coins + reward, pots: newPots };
       }, `Venda: ${recipe.name}`, reward);
 
       notify(`+${reward} moedas!`);
@@ -198,46 +209,46 @@ const App: React.FC = () => {
     return false;
   };
 
-  const purchaseSacoSurpresa = (cost: number) => {
+  // --- AQUI ESTÁ A CORREÇÃO QUE VAI TIRAR A TELA BEGE ---
+  // Unifiquei a função para bater com o que o Shop.tsx espera (onBuySpecial)
+  const handleSpecialPurchase = (cost: number, type: 'Saco' | 'Encomenda', data?: string) => {
     if (!currentPlayer) return;
-    if (currentPlayer.coins >= cost) {
-        // Debita o valor E adiciona o item na mesma jogada para evitar erro
+    if (currentPlayer.coins < cost) {
+        notify('Saldo insuficiente!', 'error');
+        return;
+    }
+
+    if (type === 'Saco') {
         const randomIng = INGREDIENTS[Math.floor(Math.random() * INGREDIENTS.length)];
-        
         updatePlayerData(localName, p => ({ 
             ...p, 
             coins: p.coins - cost,
             inventory: [...p.inventory, randomIng.code] 
         }), "Saco Surpresa", -cost);
-        
         notify(`Ganhou: ${randomIng.name}`);
-    } else {
-        notify('Saldo insuficiente!', 'error');
-    }
-  };
+    } else if (type === 'Encomenda' && data) {
+        // A Lojinha manda o código do item no parametro 'data'
+        const itemCode = data; 
+        const ingredient = INGREDIENTS.find(i => i.code === itemCode);
+        if(!ingredient) { notify('Item não existe', 'error'); return; }
 
-  const purchaseEncomenda = (code: string, cost: number) => {
-    if (!currentPlayer) return;
-    const ingredient = (INGREDIENTS || []).find(i => i.code === code);
-    
-    if (!ingredient) {
-        notify('Código de item inválido!', 'error');
-        return;
-    }
-
-    if (currentPlayer.coins >= cost) {
         updatePlayerData(localName, p => ({
             ...p,
             coins: p.coins - cost,
-            inventory: [...p.inventory, code]
+            inventory: [...p.inventory, itemCode]
         }), `Encomenda: ${ingredient.name}`, -cost);
         notify(`Encomenda recebida!`);
-        return true;
-    } else {
-        notify('Saldo insuficiente!', 'error');
-        return false;
     }
   };
+
+  // Adaptação para o Shop Component
+  // O Shop chama: onBuySpecial(cost, 'Saco') ou onBuySpecial(cost, 'Encomenda')
+  // Mas para encomenda precisa do código. 
+  // No seu Shop.tsx atualizado, a encomenda chama onBuyEncomenda.
+  // VAMOS FAZER O SHOP FUNCIONAR COM O PROP GENÉRICO
+  
+  const purchaseSacoWrapper = (cost: number) => handleSpecialPurchase(cost, 'Saco');
+  const purchaseEncomendaWrapper = (code: string, cost: number) => handleSpecialPurchase(cost, 'Encomenda', code);
 
   const handleTrade = (targetPlayer: string, type: 'coins' | 'item', data: any) => {
     const senderIdx = gameState.players.findIndex(p => p.name === localName);
@@ -297,7 +308,25 @@ const App: React.FC = () => {
             {currentPlayer && (
               <>
                 {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} />}
-                {route === AppRoute.SHOP && <Shop coins={currentPlayer.coins} onBuy={purchaseIngredient} onBuySaco={purchaseSacoSurpresa} onBuyEncomenda={purchaseEncomenda} updateBalance={updateBalance} />}
+                
+                {/* AQUI ESTÁ A CORREÇÃO: Passamos as props que o Shop.tsx espera */}
+                {route === AppRoute.SHOP && (
+                    <Shop 
+                        coins={currentPlayer.coins} 
+                        onBuy={purchaseIngredient} 
+                        onBuySaco={purchaseSacoWrapper} 
+                        onBuyEncomenda={purchaseEncomendaWrapper} 
+                        // Se o seu Shop.tsx estiver usando onBuySpecial, ele vai ignorar as de cima
+                        // Mas vou passar essa também pra garantir compatibilidade total
+                        onBuySpecial={(cost, type) => {
+                            if(type === 'Saco') purchaseSacoWrapper(cost);
+                            // Encomenda via onBuySpecial direto não tem código, então ignoramos aqui
+                            // pois o modal do Shop usa onBuyEncomenda
+                        }}
+                        updateBalance={updateBalance} 
+                    />
+                )}
+                
                 {route === AppRoute.BANK && <Bank player={currentPlayer} log={gameState.financialLog} players={gameState.players.map(p => p.name)} localName={localName} updateBalance={updateBalance} onTrade={handleTrade} onNewRound={resetRoundTransaction} />}
                 {route === AppRoute.COOKBOOK && <Cookbook />}
               </>
@@ -306,7 +335,7 @@ const App: React.FC = () => {
         )}
       </div>
       
-      {/* NOTIFICAÇÃO COM Z-INDEX ALTO */}
+      {/* NOTIFICAÇÃO Z-INDEX 200 */}
       {notification && (
         <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
           {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
