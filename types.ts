@@ -1,25 +1,26 @@
+export enum AppRoute {
+  LOBBY = 'lobby',
+  HOME = 'home',
+  SHOP = 'shop',
+  BANK = 'bank',
+  COOKBOOK = 'cookbook'
+}
 
 export interface Ingredient {
+  code: string;
   name: string;
-  code: string; // Format: I-[score]-0-[id]
-  score: number;
+  score: number; 
+  cost?: number; 
 }
 
 export interface Recipe {
+  code: string;
   name: string;
-  code: string; // Format: R-[value]-[state]-[id]
   value: number;
-  state: string;
-  ingredients: string[];
-  instructions: string;
-}
-
-export interface FinancialEvent {
-  id: string;
-  type: 'gain' | 'loss';
-  amount: number;
-  description: string;
-  timestamp: number;
+  state?: string;        
+  ingredients?: string[]; 
+  inputs?: string[];      
+  instructions?: string;  
 }
 
 export interface Pot {
@@ -39,13 +40,13 @@ export interface PlayerData {
 export interface GameState {
   isStarted: boolean;
   players: PlayerData[];
-  financialLog: FinancialEvent[];
+  financialLog: LogEntry[];
 }
 
-export enum AppRoute {
-  LOBBY = 'lobby',
-  HOME = 'home',
-  SHOP = 'shop',
-  BANK = 'bank',
-  COOKBOOK = 'cookbook'
+export interface LogEntry {
+  id: string;
+  type: 'gain' | 'loss';
+  amount: number;
+  description: string;
+  timestamp: number;
 }
