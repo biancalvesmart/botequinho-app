@@ -12,7 +12,6 @@ const firebaseConfig = {
   appId: "1:385738452580:web:a608ecc14f8b2f2687f971"
 };
 
-// Initialize Firebase with singleton pattern
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getDatabase(app);
 
