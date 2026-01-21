@@ -78,6 +78,15 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         <h2 className="text-4xl font-kalam text-black">Minha Mesa</h2>
       </div>
 
+      {/* TÍTULO NOVO: RECEITAS */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-2xl font-kalam text-black">Receitas</h3>
+        {/* Contador opcional de panelas em uso */}
+        <span className="text-[10px] font-bold text-gray-400 uppercase">
+            {player.pots.filter(p => p.recipeCode).length} em preparo
+        </span>
+      </div>
+
       {/* CARROSSEL DE PANELAS */}
       <div className="relative overflow-hidden mb-12">
         <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${activePotIdx * 100}%)` }}>
@@ -136,7 +145,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        {/* Título limpo, sem o botão + do lado */}
         <h3 className="text-2xl font-kalam text-black">Ingredientes</h3>
         <span className="text-[10px] font-bold text-gray-400 uppercase">{player.inventory.length} itens</span>
       </div>
@@ -165,7 +173,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
           })}
         </div>
       ) : (
-        /* --- ESTADO VAZIO: CESTA VAZIA (CARD GRANDE) --- */
         <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative animate-in zoom-in duration-300">
             <button 
                 onClick={() => setActiveModalType('ingredient')}
@@ -182,7 +189,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
       )}
 
-      {/* BOTÃO FLUTUANTE (Mantido como atalho) */}
       {player.inventory.length > 0 && (
         <button 
             onClick={() => setActiveModalType('ingredient')}
@@ -192,7 +198,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </button>
       )}
 
-      {/* MODAL DE BUSCA */}
+      {/* MODAL DE BUSCA UNIFICADO */}
       {activeModalType && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-start justify-center pt-24 px-6">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 duration-200">
