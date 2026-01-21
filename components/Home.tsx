@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PlayerData } from '../types';
 import { RECIPES, INGREDIENTS } from '../constants';
-import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2, LogOut, AlertTriangle, Package } from 'lucide-react';
+import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2 } from 'lucide-react';
 
 interface HomeProps {
   player: PlayerData;
@@ -78,11 +78,10 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         <h2 className="text-4xl font-kalam text-black">Minha Mesa</h2>
       </div>
 
-      {/* HEADER DAS RECEITAS COM PONTINHOS DE NAVEGAÇÃO */}
+      {/* TÍTULO RECEITAS + PONTINHOS */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
             <h3 className="text-2xl font-kalam text-black">Receitas</h3>
-            {/* PONTINHOS VISUAIS */}
             <div className="flex gap-1.5 bg-black/5 px-2 py-1.5 rounded-full">
                <div className={`w-2 h-2 rounded-full transition-all duration-300 ${activePotIdx === 0 ? 'bg-[#FF3401] w-4' : 'bg-gray-300'}`}></div>
                <div className={`w-2 h-2 rounded-full transition-all duration-300 ${activePotIdx === 1 ? 'bg-[#FF3401] w-4' : 'bg-gray-300'}`}></div>
@@ -144,20 +143,22 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
           })}
         </div>
         
-        {/* Setas de navegação invisíveis mas funcionais nas laterais */}
         <div className="absolute top-1/2 left-0 right-0 flex justify-between px-1 pointer-events-none">
-            <button onClick={() => setActivePotIdx(0)} className={`pointer-events-auto p-2 ${activePotIdx === 0 ? 'opacity-0' : 'opacity-100 text-gray-400'}`}><ChevronLeft/></button>
-            <button onClick={() => setActivePotIdx(1)} className={`pointer-events-auto p-2 ${activePotIdx === 1 ? 'opacity-0' : 'opacity-100 text-gray-400'}`}><ChevronRight/></button>
+            <button onClick={() => setActivePotIdx(0)} className={`pointer-events-auto p-2 ${activePotIdx === 0 ? 'opacity-0' : 'opacity-100'}`}><ChevronLeft/></button>
+            <button onClick={() => setActivePotIdx(1)} className={`pointer-events-auto p-2 ${activePotIdx === 1 ? 'opacity-0' : 'opacity-100'}`}><ChevronRight/></button>
         </div>
       </div>
 
       <div className="flex items-center justify-between mb-6">
+        {/* TÍTULO LIMPO: SEM O BOTÃO + */}
         <h3 className="text-2xl font-kalam text-black">Ingredientes</h3>
         <span className="text-[10px] font-bold text-gray-400 uppercase">{player.inventory.length} itens</span>
       </div>
 
+      {/* GRID OU ESTADO VAZIO */}
       {player.inventory.length > 0 ? (
         <div className="grid grid-cols-3 gap-3">
+          {/* BOTÃO DE ADICIONAR DENTRO DA GRADE (ESTILO CARD) */}
           <button 
             onClick={() => setActiveModalType('ingredient')}
             className="paper-slip p-4 rounded-2xl flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform border-2 border-dashed border-gray-200 hover:border-[#0A9396]/30 group min-h-[100px]"
@@ -179,6 +180,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
           })}
         </div>
       ) : (
+        /* --- CESTA VAZIA AGORA É UM CARD GRANDÃO (IGUAL PANELA) --- */
         <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative animate-in zoom-in duration-300">
             <button 
                 onClick={() => setActiveModalType('ingredient')}
@@ -195,7 +197,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
       )}
 
-      {/* FAB */}
+      {/* FAB FLUTUANTE (MANTIDO POR PRATICIDADE) */}
       {player.inventory.length > 0 && (
         <button 
             onClick={() => setActiveModalType('ingredient')}
@@ -205,7 +207,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </button>
       )}
 
-      {/* MODAL UNIFICADO */}
+      {/* MODAL DE BUSCA */}
       {activeModalType && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-start justify-center pt-24 px-6">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 duration-200">
