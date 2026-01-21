@@ -10,7 +10,7 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_v11_oficial_nomes'; // Nova sala pra garantir que tudo use a lógica nova
+const DB_PATH = 'sala_v11_oficial_nomes';
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
@@ -26,7 +26,6 @@ const App: React.FC = () => {
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
-  // --- TRATAMENTO DE DADOS ---
   const processData = (data: any): GameState => {
     if (!data) return { isStarted: false, players: [], financialLog: [] };
     let safePlayers: PlayerData[] = [];
@@ -101,8 +100,6 @@ const App: React.FC = () => {
   const updateBalance = (amount: number, description: string) => {
     updatePlayerData(localName, p => ({ ...p, coins: Math.max(0, p.coins + amount) }), description, amount);
   };
-
-  // --- ACTIONS ---
 
   const handleJoin = (name: string) => {
     if (gameState.players.length >= 4 && !gameState.players.find(p => p.name === name)) {
@@ -271,7 +268,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen watercolor-wash overflow-hidden max-w-md mx-auto relative shadow-2xl">
-      {/* Header com Infos do Jogador */}
       {gameState.isStarted && currentPlayer && (
         <div className="bg-[#fffef2]/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-black/5 shadow-sm z-50">
            <div className="flex items-center gap-3">
@@ -295,7 +291,6 @@ const App: React.FC = () => {
           />
         ) : (
           <>
-            {/* CORREÇÃO PARA TELA VAZIA: Se o jogo começou mas o jogador não existe, mostra botão de sair */}
             {!currentPlayer ? (
                 <div className="flex flex-col items-center justify-center h-full p-10 text-center opacity-50">
                     <p className="font-bold uppercase tracking-widest text-xs mb-4">Jogador não encontrado na sala</p>
@@ -308,10 +303,8 @@ const App: React.FC = () => {
                 </div>
             ) : (
               <>
-                {/* Aqui conectamos o onResetSession que faltava! */}
                 {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} onResetSession={handleResetSession} />}
                 
-                {/* Conectamos todas as funções da loja para evitar erros */}
                 {route === AppRoute.SHOP && (
                     <Shop 
                         coins={currentPlayer.coins} 
@@ -349,8 +342,9 @@ const App: React.FC = () => {
         </nav>
       )}
       
+      {/* NOTIFICAÇÃO COM Z-INDEX MÁXIMO (9999) */}
       {notification && (
-        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
           {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
           <span className="font-bold text-sm whitespace-nowrap">{notification.message}</span>
         </div>
