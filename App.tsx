@@ -10,13 +10,16 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_v12_logica_ingredientes';
+const DB_PATH = 'sala_v13_refinamento_final'; // Nova sala
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
   const [localName, setLocalName] = useState<string>(() => {
     try { return sessionStorage.getItem('local_player_name') || ''; } catch { return ''; }
   });
+
+  // ESTADO GLOBAL DO REFRESH DA LOJA (Começa com 3)
+  const [shopRefreshCount, setShopRefreshCount] = useState(3);
 
   const [gameState, setGameState] = useState<GameState>({
       isStarted: false,
@@ -163,7 +166,6 @@ const App: React.FC = () => {
     return false;
   };
 
-  // --- LÓGICA DE ENTREGA CORRIGIDA 🛡️ ---
   const deliverPot = (potId: number) => {
     if (!currentPlayer) return;
     const pot = currentPlayer.pots.find(p => p.id === potId);
@@ -171,19 +173,16 @@ const App: React.FC = () => {
     
     const recipe = (RECIPES || []).find(r => r.code === pot.recipeCode);
     if (recipe) {
-      // 1. Identifica os códigos necessários COM SEGURANÇA (toLowerCase)
       const requiredCodes = recipe.ingredients.map(name => {
           const ing = INGREDIENTS.find(i => i.name.toLowerCase() === name.toLowerCase());
           return ing ? ing.code : null;
       }).filter(c => c !== null) as string[];
 
-      // SEGURANÇA EXTRA: Se a receita tem ingredientes escritos mas não achamos os códigos, bloqueia.
       if (recipe.ingredients.length > 0 && requiredCodes.length !== recipe.ingredients.length) {
-          notify("Erro: Ingrediente desconhecido na receita!", "error");
+          notify("Erro: Ingrediente desconhecido!", "error");
           return;
       }
 
-      // 2. Verifica se tem tudo no inventário
       const tempInventory = [...currentPlayer.inventory];
       const hasAll = requiredCodes.every(reqCode => {
           const idx = tempInventory.indexOf(reqCode);
@@ -199,7 +198,6 @@ const App: React.FC = () => {
           return;
       }
 
-      // 3. Tudo certo: Calcula e remove
       const reward = Math.ceil(recipe.value / 3);
       
       updatePlayerData(localName, p => {
@@ -312,7 +310,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen watercolor-wash overflow-hidden max-w-md mx-auto relative shadow-2xl">
-      {/* HEADER GLOBAL COM BOTÃO SAIR */}
       {gameState.isStarted && currentPlayer && (
         <div className="bg-[#fffef2]/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-black/5 shadow-sm z-50">
            <div className="flex items-center gap-3">
@@ -365,6 +362,7 @@ const App: React.FC = () => {
               <>
                 {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} onResetSession={handleResetSession} />}
                 
+                {/* LOJA RECEBE O CONTADOR GLOBAL */}
                 {route === AppRoute.SHOP && (
                     <Shop 
                         coins={currentPlayer.coins} 
@@ -375,6 +373,8 @@ const App: React.FC = () => {
                             if(type === 'Saco') purchaseSacoWrapper(cost);
                         }}
                         updateBalance={updateBalance} 
+                        refreshCount={shopRefreshCount}
+                        onRefresh={() => setShopRefreshCount(prev => Math.max(0, prev - 1))}
                     />
                 )}
                 
@@ -402,7 +402,6 @@ const App: React.FC = () => {
         </nav>
       )}
       
-      {/* MODAL GLOBAL DE SAIR */}
       {showExitConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-in fade-in duration-200">
             <div className="paper-slip w-full max-w-xs rounded-[2rem] p-8 text-center shadow-2xl animate-in zoom-in duration-200">
