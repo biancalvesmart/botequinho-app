@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AppRoute, GameState, PlayerData } from './types';
 import { INGREDIENTS, RECIPES } from './constants';
-import { Home as HomeIcon, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2, RefreshCcw } from 'lucide-react';
+import { Home as HomeIcon, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2, RefreshCcw, LogOut, AlertTriangle } from 'lucide-react';
 import { db } from './lib/firebase';
 import { ref, onValue, set } from 'firebase/database';
 import Lobby from './components/Lobby';
@@ -10,7 +10,7 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_v11_oficial_nomes';
+const DB_PATH = 'sala_v12_logica_ingredientes';
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
@@ -25,7 +25,9 @@ const App: React.FC = () => {
   });
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false); // Modal de Sair Global
 
+  // --- TRATAMENTO DE DADOS ---
   const processData = (data: any): GameState => {
     if (!data) return { isStarted: false, players: [], financialLog: [] };
     let safePlayers: PlayerData[] = [];
@@ -161,6 +163,7 @@ const App: React.FC = () => {
     return false;
   };
 
+  // --- NOVA LÓGICA DE ENTREGA (VERIFICA INGREDIENTES) ---
   const deliverPot = (potId: number) => {
     if (!currentPlayer) return;
     const pot = currentPlayer.pots.find(p => p.id === potId);
@@ -168,12 +171,48 @@ const App: React.FC = () => {
     
     const recipe = (RECIPES || []).find(r => r.code === pot.recipeCode);
     if (recipe) {
+      // 1. Identifica os códigos necessários
+      const requiredCodes = recipe.ingredients.map(name => {
+          const ing = INGREDIENTS.find(i => i.name === name);
+          return ing ? ing.code : null;
+      }).filter(c => c !== null) as string[];
+
+      // 2. Verifica se tem tudo
+      const tempInventory = [...currentPlayer.inventory];
+      const hasAll = requiredCodes.every(reqCode => {
+          const idx = tempInventory.indexOf(reqCode);
+          if (idx !== -1) {
+              tempInventory.splice(idx, 1); // Remove temporariamente pra checar
+              return true;
+          }
+          return false;
+      });
+
+      if (!hasAll) {
+          notify("Faltam ingredientes!", "error");
+          return;
+      }
+
+      // 3. Se tem tudo, calcula recompensa e remove itens
       const reward = Math.ceil(recipe.value / 3);
       
       updatePlayerData(localName, p => {
         const newPots = [...p.pots];
         newPots[potId] = { ...newPots[potId], recipeCode: null, startTime: null };
-        return { ...p, coins: p.coins + reward, pots: newPots };
+        
+        // Remove os itens usados do inventário real
+        const finalInventory = [...p.inventory];
+        requiredCodes.forEach(reqCode => {
+            const idx = finalInventory.indexOf(reqCode);
+            if (idx !== -1) finalInventory.splice(idx, 1);
+        });
+
+        return { 
+            ...p, 
+            coins: p.coins + reward, 
+            inventory: finalInventory, // Atualiza inventário
+            pots: newPots 
+        };
       }, `Venda: ${recipe.name}`, reward);
 
       notify(`+${reward} moedas!`);
@@ -268,15 +307,30 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen watercolor-wash overflow-hidden max-w-md mx-auto relative shadow-2xl">
+      {/* Header com Infos do Jogador E BOTÃO DE SAIR */}
       {gameState.isStarted && currentPlayer && (
         <div className="bg-[#fffef2]/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-black/5 shadow-sm z-50">
            <div className="flex items-center gap-3">
              <div className="w-10 h-10 bg-[#FFCA1B] rounded-full flex items-center justify-center font-bold text-black border-2 border-black/10">
                 {localName.charAt(0).toUpperCase()}
              </div>
-             <span className="font-kalam text-xl truncate max-w-[120px]">{localName}</span>
+             <div className="leading-tight">
+                <span className="font-kalam text-xl block truncate max-w-[100px]">{localName}</span>
+                <span className="text-[10px] uppercase font-bold text-gray-400">Na Mesa</span>
+             </div>
            </div>
-           <span className="text-[#FF3401] font-bold text-lg">$ {currentPlayer.coins}</span>
+           
+           <div className="flex items-center gap-3">
+               <span className="text-[#FF3401] font-bold text-lg bg-[#FF3401]/10 px-3 py-1 rounded-lg border border-[#FF3401]/20">
+                   $ {currentPlayer.coins}
+               </span>
+               <button 
+                 onClick={() => setShowExitConfirm(true)}
+                 className="p-2 text-red-400 bg-red-50 rounded-full hover:bg-red-100 transition-colors"
+               >
+                   <LogOut size={18} />
+               </button>
+           </div>
         </div>
       )}
 
@@ -326,6 +380,37 @@ const App: React.FC = () => {
         )}
       </div>
 
+      {/* MODAL DE CONFIRMAÇÃO DE SAÍDA GLOBAL */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-in fade-in duration-200">
+            <div className="paper-slip w-full max-w-xs rounded-[2rem] p-8 text-center shadow-2xl animate-in zoom-in duration-200">
+                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle size={32}/>
+                </div>
+                <h3 className="font-kalam text-2xl mb-2">Encerrar a Mesa?</h3>
+                <p className="text-sm text-gray-500 mb-8">O jogo será apagado para todos os jogadores. Tem certeza?</p>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setShowExitConfirm(false)}
+                        className="flex-1 py-3 font-bold text-gray-400 uppercase text-xs rounded-xl hover:bg-gray-50"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        onClick={() => {
+                            handleResetSession();
+                            setShowExitConfirm(false);
+                        }}
+                        className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold uppercase text-xs shadow-md"
+                    >
+                        Sim, Encerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* --- MENU DE NAVEGAÇÃO --- */}
       {gameState.isStarted && currentPlayer && (
         <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
           {[
@@ -342,7 +427,6 @@ const App: React.FC = () => {
         </nav>
       )}
       
-      {/* NOTIFICAÇÃO COM Z-INDEX MÁXIMO (9999) */}
       {notification && (
         <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
           {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
