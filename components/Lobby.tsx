@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SESSION_CODE } from '../constants';
-import { ChevronRight, AlertTriangle, CheckCircle, RefreshCcw } from 'lucide-react';
+import { ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface LobbyProps {
   onJoin: (name: string) => void;
@@ -148,13 +148,6 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players = [], c
           <p className="mt-4 text-[10px] text-gray-400 uppercase font-bold tracking-widest">A partida requer entre 2 e 4 jogadores para iniciar</p>
         </div>
       )}
-
-      <button 
-        onClick={onReset}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-300 font-bold uppercase tracking-widest flex items-center gap-2 hover:text-[#FF3401] transition-colors"
-      >
-        <RefreshCcw size={12}/> Limpar Sessão
-      </button>
     </div>
   );
 };
