@@ -25,7 +25,7 @@ const App: React.FC = () => {
   });
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
-  const [showExitConfirm, setShowExitConfirm] = useState(false); // Modal de Sair Global
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // --- TRATAMENTO DE DADOS ---
   const processData = (data: any): GameState => {
@@ -163,7 +163,7 @@ const App: React.FC = () => {
     return false;
   };
 
-  // --- NOVA LÓGICA DE ENTREGA (VERIFICA INGREDIENTES) ---
+  // --- LÓGICA DE ENTREGA CORRIGIDA 🛡️ ---
   const deliverPot = (potId: number) => {
     if (!currentPlayer) return;
     const pot = currentPlayer.pots.find(p => p.id === potId);
@@ -171,18 +171,24 @@ const App: React.FC = () => {
     
     const recipe = (RECIPES || []).find(r => r.code === pot.recipeCode);
     if (recipe) {
-      // 1. Identifica os códigos necessários
+      // 1. Identifica os códigos necessários COM SEGURANÇA (toLowerCase)
       const requiredCodes = recipe.ingredients.map(name => {
-          const ing = INGREDIENTS.find(i => i.name === name);
+          const ing = INGREDIENTS.find(i => i.name.toLowerCase() === name.toLowerCase());
           return ing ? ing.code : null;
       }).filter(c => c !== null) as string[];
 
-      // 2. Verifica se tem tudo
+      // SEGURANÇA EXTRA: Se a receita tem ingredientes escritos mas não achamos os códigos, bloqueia.
+      if (recipe.ingredients.length > 0 && requiredCodes.length !== recipe.ingredients.length) {
+          notify("Erro: Ingrediente desconhecido na receita!", "error");
+          return;
+      }
+
+      // 2. Verifica se tem tudo no inventário
       const tempInventory = [...currentPlayer.inventory];
       const hasAll = requiredCodes.every(reqCode => {
           const idx = tempInventory.indexOf(reqCode);
           if (idx !== -1) {
-              tempInventory.splice(idx, 1); // Remove temporariamente pra checar
+              tempInventory.splice(idx, 1);
               return true;
           }
           return false;
@@ -193,14 +199,13 @@ const App: React.FC = () => {
           return;
       }
 
-      // 3. Se tem tudo, calcula recompensa e remove itens
+      // 3. Tudo certo: Calcula e remove
       const reward = Math.ceil(recipe.value / 3);
       
       updatePlayerData(localName, p => {
         const newPots = [...p.pots];
         newPots[potId] = { ...newPots[potId], recipeCode: null, startTime: null };
         
-        // Remove os itens usados do inventário real
         const finalInventory = [...p.inventory];
         requiredCodes.forEach(reqCode => {
             const idx = finalInventory.indexOf(reqCode);
@@ -210,7 +215,7 @@ const App: React.FC = () => {
         return { 
             ...p, 
             coins: p.coins + reward, 
-            inventory: finalInventory, // Atualiza inventário
+            inventory: finalInventory,
             pots: newPots 
         };
       }, `Venda: ${recipe.name}`, reward);
@@ -307,7 +312,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen watercolor-wash overflow-hidden max-w-md mx-auto relative shadow-2xl">
-      {/* Header com Infos do Jogador E BOTÃO DE SAIR */}
+      {/* HEADER GLOBAL COM BOTÃO SAIR */}
       {gameState.isStarted && currentPlayer && (
         <div className="bg-[#fffef2]/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-black/5 shadow-sm z-50">
            <div className="flex items-center gap-3">
@@ -327,6 +332,7 @@ const App: React.FC = () => {
                <button 
                  onClick={() => setShowExitConfirm(true)}
                  className="p-2 text-red-400 bg-red-50 rounded-full hover:bg-red-100 transition-colors"
+                 title="Encerrar Sessão"
                >
                    <LogOut size={18} />
                </button>
@@ -380,7 +386,23 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* MODAL DE CONFIRMAÇÃO DE SAÍDA GLOBAL */}
+      {gameState.isStarted && currentPlayer && (
+        <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
+          {[
+            { id: AppRoute.HOME, icon: HomeIcon, label: 'Lobby' },
+            { id: AppRoute.SHOP, icon: ShoppingBag, label: 'Lojinha' },
+            { id: AppRoute.BANK, icon: Landmark, label: 'Banco' },
+            { id: AppRoute.COOKBOOK, icon: BookOpen, label: 'Receitas' },
+          ].map((item) => (
+            <button key={item.id} onClick={() => setRoute(item.id)} className={`flex flex-col items-center gap-1 ${route === item.id ? 'text-[#FF3401]' : 'text-gray-400'}`}>
+              <item.icon size={26} />
+              <span className="text-[10px] font-bold uppercase">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
+      
+      {/* MODAL GLOBAL DE SAIR */}
       {showExitConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-in fade-in duration-200">
             <div className="paper-slip w-full max-w-xs rounded-[2rem] p-8 text-center shadow-2xl animate-in zoom-in duration-200">
@@ -410,23 +432,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* --- MENU DE NAVEGAÇÃO --- */}
-      {gameState.isStarted && currentPlayer && (
-        <nav className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-black/5 flex justify-around items-center h-24 px-4 z-[90]">
-          {[
-            { id: AppRoute.HOME, icon: HomeIcon, label: 'Lobby' },
-            { id: AppRoute.SHOP, icon: ShoppingBag, label: 'Lojinha' },
-            { id: AppRoute.BANK, icon: Landmark, label: 'Banco' },
-            { id: AppRoute.COOKBOOK, icon: BookOpen, label: 'Receitas' },
-          ].map((item) => (
-            <button key={item.id} onClick={() => setRoute(item.id)} className={`flex flex-col items-center gap-1 ${route === item.id ? 'text-[#FF3401]' : 'text-gray-400'}`}>
-              <item.icon size={26} />
-              <span className="text-[10px] font-bold uppercase">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      )}
-      
       {notification && (
         <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
           {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
