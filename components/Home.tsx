@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PlayerData } from '../types';
 import { RECIPES, INGREDIENTS } from '../constants';
-import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2, LogOut, AlertTriangle } from 'lucide-react';
+import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2 } from 'lucide-react';
 
 interface HomeProps {
   player: PlayerData;
@@ -13,13 +13,9 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onResetSession }) => {
   const [activePotIdx, setActivePotIdx] = useState(0);
-  
-  // Estado modificado para saber QUAL tipo de modal abrir
   const [activeModalType, setActiveModalType] = useState<'recipe' | 'ingredient' | null>(null);
-  
   const [searchQuery, setSearchQuery] = useState('');
   const [readyPotId, setReadyPotId] = useState<number | null>(null);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // --- BUSCA SEPARADA ---
   const filteredOptions = useMemo(() => {
@@ -40,7 +36,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
   const handleSelectOption = (code: string) => {
     onAddCode(code);
     setSearchQuery('');
-    setActiveModalType(null); // Fecha o modal
+    setActiveModalType(null);
   };
 
   // Detector de Receita Pronta
@@ -118,7 +114,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                     </div>
                   ) : (
                     <button 
-                      onClick={() => setActiveModalType('recipe')} // ABRE MODAL DE RECEITAS
+                      onClick={() => setActiveModalType('recipe')}
                       className="w-full flex flex-col items-center justify-center opacity-40 hover:opacity-100 transition-all group"
                     >
                         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#FFCA1B]/20 group-hover:text-[#FFCA1B] transition-colors">
@@ -148,7 +144,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
             
             {/* BOTÃO ADICIONAR INGREDIENTE (PEQUENO, ESTILO CARD) */}
             <button 
-              onClick={() => setActiveModalType('ingredient')} // ABRE MODAL DE INGREDIENTES
+              onClick={() => setActiveModalType('ingredient')}
               className="bg-[#fdfcf0] border border-black/5 rounded-2xl w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#FF3401] shadow-sm active:scale-95 transition-all"
             >
                 <Plus size={20}/>
@@ -175,16 +171,9 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
       )}
 
-      <div className="mt-12 mb-8 flex justify-center">
-          <button 
-            onClick={() => setShowExitConfirm(true)}
-            className="flex items-center gap-2 text-red-400 font-bold text-xs uppercase tracking-widest hover:text-red-600 transition-colors px-6 py-3 rounded-full hover:bg-red-50"
-          >
-              <LogOut size={16}/> Encerrar Mesa
-          </button>
-      </div>
+      {/* --- O BOTÃO DE SAIR ESTAVA AQUI E FOI REMOVIDO --- */}
 
-      {/* FAB FLUTUANTE (Mantido como atalho para Ingrediente, o mais comum) */}
+      {/* FAB FLUTUANTE (Atalho para Ingrediente) */}
       <button 
         onClick={() => setActiveModalType('ingredient')}
         className="fixed bottom-28 right-8 w-16 h-16 bg-[#FF3401] text-white rounded-full shadow-2xl flex items-center justify-center btn-watercolor z-30 active:scale-95 transition-transform"
@@ -192,12 +181,11 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         <Plus size={32} />
       </button>
 
-      {/* MODAL DE BUSCA UNIFICADO (Mas com filtro interno) */}
+      {/* MODAL DE BUSCA UNIFICADO */}
       {activeModalType && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-start justify-center pt-24 px-6">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 duration-200">
             <div className="flex justify-between items-center mb-4">
-               {/* TÍTULO DINÂMICO */}
                <h3 className="text-xl font-kalam text-black leading-tight">
                    {activeModalType === 'recipe' ? 'Adicionar Receita' : 'Adicionar Ingrediente'}
                </h3>
@@ -227,7 +215,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                         className="w-full text-left p-4 rounded-xl bg-white border border-black/5 hover:bg-[#FFCA1B]/10 hover:border-[#FFCA1B] transition-colors flex items-center justify-between group"
                     >
                         <span className="font-bold text-black/80">{item.name}</span>
-                        {/* Se for receita, mostra o score em destaque */}
                         {item.type === 'rec' && (
                             <span className="bg-[#FFCA1B]/20 text-[#FFCA1B] text-[10px] px-2 py-1 rounded-md font-bold">
                                 {item.value} pts
