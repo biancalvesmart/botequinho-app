@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PlayerData } from '../types';
 import { RECIPES, INGREDIENTS } from '../constants';
-import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2 } from 'lucide-react';
+import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2, LogOut, AlertTriangle, Package } from 'lucide-react';
 
 interface HomeProps {
   player: PlayerData;
@@ -16,20 +16,18 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
   const [activeModalType, setActiveModalType] = useState<'recipe' | 'ingredient' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [readyPotId, setReadyPotId] = useState<number | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  // --- BUSCA SEPARADA ---
+  // --- BUSCA SEPARADA E BLINDADA ---
   const filteredOptions = useMemo(() => {
     if (!searchQuery) return [];
     const lower = searchQuery.toLowerCase();
 
     if (activeModalType === 'recipe') {
-        // Só retorna receitas
         return RECIPES.filter(r => r.name.toLowerCase().includes(lower)).map(r => ({...r, type: 'rec'}));
     } else if (activeModalType === 'ingredient') {
-        // Só retorna ingredientes
         return INGREDIENTS.filter(i => i.name.toLowerCase().includes(lower)).map(i => ({...i, type: 'ing'}));
     }
-    
     return [];
   }, [searchQuery, activeModalType]);
 
@@ -88,6 +86,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
             const recipe = pot.recipeCode ? RECIPES.find(r => r.code === pot.recipeCode) : null;
             return (
               <div key={pot.id} className="min-w-full px-2">
+                {/* CARD DA PANELA (Estilo Padrão) */}
                 <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative">
                   {recipe ? (
                     <div className="animate-in fade-in duration-500 w-full">
@@ -115,13 +114,13 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                   ) : (
                     <button 
                       onClick={() => setActiveModalType('recipe')}
-                      className="w-full flex flex-col items-center justify-center opacity-40 hover:opacity-100 transition-all group"
+                      className="w-full flex flex-col items-center justify-center opacity-60 hover:opacity-100 transition-all group"
                     >
                         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#FFCA1B]/20 group-hover:text-[#FFCA1B] transition-colors">
                           <Plus size={32} />
                         </div>
-                        <p className="font-kalam text-xl">Panela vazia...</p>
-                        <span className="mt-4 text-[10px] font-bold uppercase tracking-widest">
+                        <p className="font-kalam text-xl text-gray-400 group-hover:text-black transition-colors">Panela vazia...</p>
+                        <span className="mt-4 text-[10px] font-bold uppercase tracking-widest text-gray-300 group-hover:text-[#FFCA1B] transition-colors">
                           ADICIONAR RECEITA
                         </span>
                     </button>
@@ -141,13 +140,12 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
             <h3 className="text-2xl font-kalam text-black">Ingredientes</h3>
-            
-            {/* BOTÃO ADICIONAR INGREDIENTE (PEQUENO, ESTILO CARD) */}
+            {/* BOTÃO ADICIONAR LATERAL (Mantido como opção rápida) */}
             <button 
               onClick={() => setActiveModalType('ingredient')}
-              className="bg-[#fdfcf0] border border-black/5 rounded-2xl w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#FF3401] shadow-sm active:scale-95 transition-all"
+              className="bg-white border border-black/5 rounded-xl w-8 h-8 flex items-center justify-center text-gray-400 hover:text-[#0A9396] shadow-sm active:scale-95 transition-all"
             >
-                <Plus size={20}/>
+                <Plus size={16}/>
             </button>
         </div>
         <span className="text-[10px] font-bold text-gray-400 uppercase">{player.inventory.length} itens</span>
@@ -155,37 +153,61 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
 
       {player.inventory.length > 0 ? (
         <div className="grid grid-cols-3 gap-3">
+          {/* BOTÃO DE ADICIONAR DENTRO DA GRADE (NOVO PADRÃO) */}
+          <button 
+            onClick={() => setActiveModalType('ingredient')}
+            className="paper-slip p-4 rounded-2xl flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform border-2 border-dashed border-gray-200 hover:border-[#0A9396]/30 group min-h-[100px]"
+          >
+             <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-[#0A9396]/10 group-hover:text-[#0A9396] transition-colors">
+                <Plus size={16}/>
+             </div>
+             <span className="text-[8px] font-bold text-gray-400 uppercase group-hover:text-[#0A9396]">Adicionar</span>
+          </button>
+
           {player.inventory.map((code, idx) => {
             const ing = INGREDIENTS.find(i => i.code === code);
             return (
-              <div key={`${code}-${idx}`} className="paper-slip p-4 rounded-2xl flex flex-col items-center text-center transform hover:rotate-2 transition-transform">
-                <div className="text-lg font-kalam text-[#FFCA1B] mb-1 leading-none">{ing?.score}</div>
-                <span className="text-[10px] font-bold text-black/70 leading-tight uppercase line-clamp-1">{ing?.name}</span>
+              <div key={`${code}-${idx}`} className="paper-slip p-4 rounded-2xl flex flex-col items-center text-center transform hover:rotate-2 transition-transform min-h-[100px] justify-center">
+                <div className="text-lg font-kalam text-[#0A9396] mb-1 leading-none">{ing?.score}</div>
+                <span className="text-[10px] font-bold text-black/70 leading-tight uppercase line-clamp-2">{ing?.name}</span>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="paper-slip p-12 rounded-[2.5rem] text-center opacity-30 italic">
-            <p className="text-sm font-bold uppercase tracking-widest">Cesta Vazia</p>
+        /* --- ESTADO VAZIO ESTILIZADO (IGUAL PANELA) --- */
+        <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative animate-in zoom-in duration-300">
+            <button 
+                onClick={() => setActiveModalType('ingredient')}
+                className="w-full flex flex-col items-center justify-center opacity-60 hover:opacity-100 transition-all group"
+            >
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#0A9396]/20 group-hover:text-[#0A9396] transition-colors">
+                    <Plus size={32} />
+                </div>
+                <p className="font-kalam text-xl text-gray-400 group-hover:text-black transition-colors">Cesta vazia...</p>
+                <span className="mt-4 text-[10px] font-bold uppercase tracking-widest text-gray-300 group-hover:text-[#0A9396] transition-colors">
+                    ADICIONAR INGREDIENTE
+                </span>
+            </button>
         </div>
       )}
 
-      {/* --- O BOTÃO DE SAIR ESTAVA AQUI E FOI REMOVIDO --- */}
-
-      {/* FAB FLUTUANTE (Atalho para Ingrediente) */}
-      <button 
-        onClick={() => setActiveModalType('ingredient')}
-        className="fixed bottom-28 right-8 w-16 h-16 bg-[#FF3401] text-white rounded-full shadow-2xl flex items-center justify-center btn-watercolor z-30 active:scale-95 transition-transform"
-      >
-        <Plus size={32} />
-      </button>
+      {/* FAB (Mantido por segurança de UX) */}
+      {player.inventory.length > 0 && (
+        <button 
+            onClick={() => setActiveModalType('ingredient')}
+            className="fixed bottom-28 right-8 w-16 h-16 bg-[#0A9396] text-white rounded-full shadow-2xl flex items-center justify-center btn-watercolor z-30 active:scale-95 transition-transform"
+        >
+            <Plus size={32} />
+        </button>
+      )}
 
       {/* MODAL DE BUSCA UNIFICADO */}
       {activeModalType && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-start justify-center pt-24 px-6">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 duration-200">
             <div className="flex justify-between items-center mb-4">
+               {/* TÍTULO DINÂMICO */}
                <h3 className="text-xl font-kalam text-black leading-tight">
                    {activeModalType === 'recipe' ? 'Adicionar Receita' : 'Adicionar Ingrediente'}
                </h3>
@@ -199,7 +221,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar por nome" 
+                    placeholder="Buscar por nome"
                     className="w-full bg-gray-50 border border-black/5 rounded-xl py-4 pl-12 pr-4 font-bold outline-none focus:border-[#FFCA1B]"
                 />
             </div>
