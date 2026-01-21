@@ -10,8 +10,8 @@ interface ShopProps {
   onBuyEncomenda: (code: string, cost: number) => void;
   onBuySpecial: (cost: number, type: 'Saco' | 'Encomenda', data?: string) => void;
   updateBalance: (amount: number, description: string) => void;
-  refreshCount: number; // NOVO: Vem do App
-  onRefresh: () => void; // NOVO: Chama o App
+  refreshCount: number;
+  onRefresh: () => void;
 }
 
 const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, onBuySpecial, refreshCount, onRefresh }) => {
@@ -19,19 +19,16 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
   const [isEncomendaOpen, setIsEncomendaOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Atualiza a prateleira apenas na montagem inicial SE não tiver itens
   useEffect(() => { 
       if(shelfItems.length === 0) doRefresh(true); 
   }, []);
 
   const doRefresh = (force = false) => {
-    // Se não for forçado (inicial) e não tiver créditos, aborta
     if (!force && refreshCount <= 0) return;
     
     const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
     setShelfItems(shuffled.slice(0, 4));
     
-    // Só desconta se não for o carregamento inicial automático
     if (!force) onRefresh();
   };
 
@@ -112,7 +109,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
               onClick={() => onBuySpecial ? onBuySpecial(4, 'Saco') : onBuySaco(4)}
               className="bg-[#FFCA1B] text-black text-[10px] font-bold px-6 py-3 rounded-2xl flex items-center gap-2 btn-watercolor shadow-md border border-black/5"
             >
-              <Coins size={14}/> $ 4.00
+              <Coins size={14}/> R$ 4.00
             </button>
           </div>
         </div>
@@ -131,7 +128,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
                 coins >= 16 ? 'bg-white text-black btn-watercolor' : 'bg-white/20 text-white/50 cursor-not-allowed'
               }`}
             >
-              <Coins size={14}/> $ 16.00
+              <Coins size={14}/> R$ 16.00
             </button>
           </div>
         </div>
@@ -141,7 +138,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
         <div className="fixed inset-0 z-[120] flex items-start justify-center pt-24 px-6 bg-black/80 backdrop-blur-sm">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in zoom-in duration-200">
             <div className="flex justify-between items-center mb-4">
-               <h3 className="text-2xl font-kalam text-black">Encomendar</h3>
+               <h3 className="text-3xl font-kalam text-black">Encomendar</h3>
                <button onClick={() => setIsEncomendaOpen(false)} className="text-gray-400"><X size={24}/></button>
             </div>
             
@@ -169,7 +166,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
                     >
                         <span className="font-bold text-black/80">{item.name}</span>
                         <div className="flex items-center gap-2 text-[#FF3401] opacity-0 group-hover:opacity-100 transition-opacity font-bold text-xs uppercase">
-                            <span>$ 16</span> <Coins size={12}/>
+                            <span>R$ 16</span> <Coins size={12}/>
                         </div>
                     </button>
                 ))}
