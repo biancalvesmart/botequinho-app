@@ -10,23 +10,29 @@ interface ShopProps {
   onBuyEncomenda: (code: string, cost: number) => void;
   onBuySpecial: (cost: number, type: 'Saco' | 'Encomenda', data?: string) => void;
   updateBalance: (amount: number, description: string) => void;
+  refreshCount: number; // NOVO: Vem do App
+  onRefresh: () => void; // NOVO: Chama o App
 }
 
-const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, onBuySpecial }) => {
+const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, onBuySpecial, refreshCount, onRefresh }) => {
   const [shelfItems, setShelfItems] = useState<Ingredient[]>([]);
   const [isEncomendaOpen, setIsEncomendaOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [refreshCount, setRefreshCount] = useState(3); // Começa com 3 chances
 
-  useEffect(() => { refreshShelf(true); }, []);
+  // Atualiza a prateleira apenas na montagem inicial SE não tiver itens
+  useEffect(() => { 
+      if(shelfItems.length === 0) doRefresh(true); 
+  }, []);
 
-  const refreshShelf = (force = false) => {
-    if (!force && refreshCount <= 0) return; // Trava se acabou as chances
+  const doRefresh = (force = false) => {
+    // Se não for forçado (inicial) e não tiver créditos, aborta
+    if (!force && refreshCount <= 0) return;
     
     const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
     setShelfItems(shuffled.slice(0, 4));
     
-    if (!force) setRefreshCount(prev => prev - 1); // Gasta uma chance
+    // Só desconta se não for o carregamento inicial automático
+    if (!force) onRefresh();
   };
 
   const handleShelfBuy = (ing: Ingredient) => {
@@ -58,9 +64,8 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-5xl font-kalam text-black">Lojinha</h2>
         
-        {/* BOTÃO DE REFRESH COM CONTADOR */}
         <button 
-            onClick={() => refreshShelf(false)} 
+            onClick={() => doRefresh(false)} 
             disabled={refreshCount === 0}
             className={`p-2 transition-all flex items-center gap-2 rounded-full border border-transparent ${
                 refreshCount > 0 
@@ -136,7 +141,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
         <div className="fixed inset-0 z-[120] flex items-start justify-center pt-24 px-6 bg-black/80 backdrop-blur-sm">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in zoom-in duration-200">
             <div className="flex justify-between items-center mb-4">
-               <h3 className="text-3xl font-kalam text-black">Encomendar</h3>
+               <h3 className="text-2xl font-kalam text-black">Encomendar</h3>
                <button onClick={() => setIsEncomendaOpen(false)} className="text-gray-400"><X size={24}/></button>
             </div>
             
