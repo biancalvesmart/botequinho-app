@@ -10,6 +10,7 @@ export interface Ingredient {
   code: string;
   name: string;
   score: number; 
+  image?: string;
 }
 
 export interface Recipe {
@@ -18,7 +19,8 @@ export interface Recipe {
   value: number;
   state: string;          
   ingredients: string[];  
-  instructions: string;   
+  instructions: string;  
+  image?: string;
 }
 
 export interface Pot {
