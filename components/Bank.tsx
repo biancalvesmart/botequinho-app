@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PlayerData, FinancialEvent } from '../types';
-import { INGREDIENTS } from '../constants'; // <--- IMPORTAÇÃO CORRETA AQUI
+import { INGREDIENTS } from '../constants';
 import { Landmark, History, PlusCircle, MinusCircle, Repeat, X } from 'lucide-react';
 
 interface BankProps {
@@ -25,7 +25,7 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
   const otherPlayers = players.filter(p => p !== localName);
 
   const handleStartTrade = () => {
-    if (player.hasTransactedThisRound) return;
+    // REMOVI O BLOQUEIO DE RODADA AQUI
     if (!tradeTarget) return;
 
     if (tradeType === 'coins') {
@@ -85,12 +85,10 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
       <div className="grid grid-cols-2 gap-4 mb-6">
         <button 
           onClick={() => setShowTrade(true)}
-          disabled={player.hasTransactedThisRound}
-          className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-md ${
-            player.hasTransactedThisRound ? 'bg-gray-200 text-gray-400' : 'bg-white text-black border border-black/5 btn-watercolor'
-          }`}
+          // REMOVI O DISABLED DO BOTÃO
+          className="flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-md bg-white text-black border border-black/5 btn-watercolor"
         >
-          <Repeat size={18}/> {player.hasTransactedThisRound ? 'LIMITE' : 'TROCAR'}
+          <Repeat size={18}/> TROCAR
         </button>
         <button 
           onClick={() => setShowRefund(true)}
@@ -209,7 +207,6 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
                    >
                     <option value="">Selecione...</option>
                     {player.inventory.map((code, idx) => {
-                       // AGORA USA O ARRAY IMPORTADO CORRETAMENTE
                        const ing = INGREDIENTS.find((i:any) => i.code === code);
                        return <option key={idx} value={code}>{ing ? ing.name : code}</option>
                     })}
