@@ -10,7 +10,7 @@ import Shop from './components/Shop';
 import Bank from './components/Bank';
 import Cookbook from './components/Cookbook';
 
-const DB_PATH = 'sala_v13_refinamento_final'; // Nova sala
+const DB_PATH = 'sala_v13_refinamento_final';
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOBBY);
@@ -18,7 +18,6 @@ const App: React.FC = () => {
     try { return sessionStorage.getItem('local_player_name') || ''; } catch { return ''; }
   });
 
-  // ESTADO GLOBAL DO REFRESH DA LOJA (Começa com 3)
   const [shopRefreshCount, setShopRefreshCount] = useState(3);
 
   const [gameState, setGameState] = useState<GameState>({
@@ -30,7 +29,6 @@ const App: React.FC = () => {
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  // --- TRATAMENTO DE DADOS ---
   const processData = (data: any): GameState => {
     if (!data) return { isStarted: false, players: [], financialLog: [] };
     let safePlayers: PlayerData[] = [];
@@ -324,7 +322,7 @@ const App: React.FC = () => {
            
            <div className="flex items-center gap-3">
                <span className="text-[#FF3401] font-bold text-lg bg-[#FF3401]/10 px-3 py-1 rounded-lg border border-[#FF3401]/20">
-                   $ {currentPlayer.coins}
+                   R$ {currentPlayer.coins}
                </span>
                <button 
                  onClick={() => setShowExitConfirm(true)}
@@ -362,7 +360,6 @@ const App: React.FC = () => {
               <>
                 {route === AppRoute.HOME && <GameHome player={currentPlayer} onDeliver={deliverPot} onGiveUp={giveUpPot} onAddCode={addItemByCode} onResetSession={handleResetSession} />}
                 
-                {/* LOJA RECEBE O CONTADOR GLOBAL */}
                 {route === AppRoute.SHOP && (
                     <Shop 
                         coins={currentPlayer.coins} 
