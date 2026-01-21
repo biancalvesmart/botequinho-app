@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PlayerData } from '../types';
 import { RECIPES, INGREDIENTS } from '../constants';
-import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2, LogOut, AlertTriangle, Package } from 'lucide-react';
+import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2 } from 'lucide-react';
 
 interface HomeProps {
   player: PlayerData;
@@ -16,9 +16,8 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
   const [activeModalType, setActiveModalType] = useState<'recipe' | 'ingredient' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [readyPotId, setReadyPotId] = useState<number | null>(null);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  // --- BUSCA SEPARADA E BLINDADA ---
+  // --- BUSCA SEPARADA ---
   const filteredOptions = useMemo(() => {
     if (!searchQuery) return [];
     const lower = searchQuery.toLowerCase();
@@ -86,7 +85,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
             const recipe = pot.recipeCode ? RECIPES.find(r => r.code === pot.recipeCode) : null;
             return (
               <div key={pot.id} className="min-w-full px-2">
-                {/* CARD DA PANELA (Estilo Padrão) */}
                 <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative">
                   {recipe ? (
                     <div className="animate-in fade-in duration-500 w-full">
@@ -138,22 +136,14 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-            <h3 className="text-2xl font-kalam text-black">Ingredientes</h3>
-            {/* BOTÃO ADICIONAR LATERAL (Mantido como opção rápida) */}
-            <button 
-              onClick={() => setActiveModalType('ingredient')}
-              className="bg-white border border-black/5 rounded-xl w-8 h-8 flex items-center justify-center text-gray-400 hover:text-[#0A9396] shadow-sm active:scale-95 transition-all"
-            >
-                <Plus size={16}/>
-            </button>
-        </div>
+        {/* Título limpo, sem o botão + do lado */}
+        <h3 className="text-2xl font-kalam text-black">Ingredientes</h3>
         <span className="text-[10px] font-bold text-gray-400 uppercase">{player.inventory.length} itens</span>
       </div>
 
       {player.inventory.length > 0 ? (
         <div className="grid grid-cols-3 gap-3">
-          {/* BOTÃO DE ADICIONAR DENTRO DA GRADE (NOVO PADRÃO) */}
+          {/* BOTÃO DE ADICIONAR DENTRO DA GRADE */}
           <button 
             onClick={() => setActiveModalType('ingredient')}
             className="paper-slip p-4 rounded-2xl flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform border-2 border-dashed border-gray-200 hover:border-[#0A9396]/30 group min-h-[100px]"
@@ -175,7 +165,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
           })}
         </div>
       ) : (
-        /* --- ESTADO VAZIO ESTILIZADO (IGUAL PANELA) --- */
+        /* --- ESTADO VAZIO: CESTA VAZIA (CARD GRANDE) --- */
         <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative animate-in zoom-in duration-300">
             <button 
                 onClick={() => setActiveModalType('ingredient')}
@@ -192,7 +182,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
       )}
 
-      {/* FAB (Mantido por segurança de UX) */}
+      {/* BOTÃO FLUTUANTE (Mantido como atalho) */}
       {player.inventory.length > 0 && (
         <button 
             onClick={() => setActiveModalType('ingredient')}
@@ -202,12 +192,11 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </button>
       )}
 
-      {/* MODAL DE BUSCA UNIFICADO */}
+      {/* MODAL DE BUSCA */}
       {activeModalType && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-start justify-center pt-24 px-6">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 duration-200">
             <div className="flex justify-between items-center mb-4">
-               {/* TÍTULO DINÂMICO */}
                <h3 className="text-xl font-kalam text-black leading-tight">
                    {activeModalType === 'recipe' ? 'Adicionar Receita' : 'Adicionar Ingrediente'}
                </h3>
