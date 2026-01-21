@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PlayerData, FinancialEvent } from '../types';
+import { INGREDIENTS } from '../constants'; // <--- IMPORTAÇÃO CORRETA AQUI
 import { Landmark, History, PlusCircle, MinusCircle, Repeat, X } from 'lucide-react';
 
 interface BankProps {
@@ -15,7 +16,7 @@ interface BankProps {
 const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBalance, onTrade, onNewRound }) => {
   const [showExtrato, setShowExtrato] = useState(false);
   const [showRefund, setShowRefund] = useState(false);
-  const [refundValue, setRefundValue] = useState(''); // Mudei para string para usar input
+  const [refundValue, setRefundValue] = useState('');
   const [showTrade, setShowTrade] = useState(false);
   const [tradeTarget, setTradeTarget] = useState('');
   const [tradeType, setTradeType] = useState<'coins' | 'item'>('coins');
@@ -99,7 +100,6 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
         </button>
       </div>
 
-      {/* MODAL DEVOLVER (ATUALIZADO PARA TECLADO) */}
       {showRefund && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-in fade-in duration-300">
           <div className="paper-slip w-full max-w-xs rounded-3xl p-8 animate-in zoom-in duration-300 shadow-2xl">
@@ -122,7 +122,6 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
         </div>
       )}
 
-      {/* EXTRATO (Igual ao anterior) */}
       {showExtrato && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="paper-slip w-full max-w-sm rounded-3xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500 shadow-2xl">
@@ -152,7 +151,6 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
         </div>
       )}
 
-      {/* TRADE MODAL (Igual ao anterior) */}
       {showTrade && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
           <div className="paper-slip w-full max-w-sm rounded-[3rem] p-10 animate-in zoom-in duration-300 shadow-2xl">
@@ -162,11 +160,6 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
             </div>
             
             <div className="space-y-6">
-              {/* ... (Conteúdo igual) ... */}
-              {/* Para economizar espaço aqui na resposta, mantenha o conteúdo do trade igual */}
-              {/* Se precisar, eu mando completo de novo */}
-              {/* VOU MANDAR COMPLETO PRA NÃO TER ERRO: */}
-              
               <div>
                 <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block mb-3">Escolha o alvo</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -215,12 +208,9 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
                     className="w-full bg-gray-50 border border-black/5 rounded-2xl px-4 py-5 font-bold text-center outline-none appearance-none"
                    >
                     <option value="">Selecione...</option>
-                    {/* Aqui eu poderia usar o INGREDIENTS.find para mostrar o nome */}
-                    {/* Mas como é um select simples, vamos manter pelo código no value, e nome no label */}
-                    {/* O ideal seria usar o componente de busca aqui também, mas vamos manter simples por enquanto */}
                     {player.inventory.map((code, idx) => {
-                       // Pequeno hack para mostrar nome no select
-                       const ing = [...(require('../constants').INGREDIENTS)].find((i:any) => i.code === code);
+                       // AGORA USA O ARRAY IMPORTADO CORRETAMENTE
+                       const ing = INGREDIENTS.find((i:any) => i.code === code);
                        return <option key={idx} value={code}>{ing ? ing.name : code}</option>
                     })}
                    </select>
