@@ -5,12 +5,12 @@ import { ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react';
 interface LobbyProps {
   onJoin: (name: string) => void;
   onStart: () => void;
-  onReset: () => void;
+  onReset: () => void; // Mantivemos a prop para não quebrar o App.tsx, mas não a usamos no visual
   players: string[];
   currentName: string;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players = [], currentName }) => {
+const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, players = [], currentName }) => {
   const [step, setStep] = useState<'logo' | 'code' | 'name' | 'waiting'>('logo');
   const [inputCode, setInputCode] = useState('');
   const [playerName, setPlayerName] = useState('');
