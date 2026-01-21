@@ -16,9 +16,8 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [readyPotId, setReadyPotId] = useState<number | null>(null);
-  const [showExitConfirm, setShowExitConfirm] = useState(false); // Modal de Sair
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  // Busca Inteligente
   const filteredOptions = useMemo(() => {
     if (!searchQuery) return [];
     const lower = searchQuery.toLowerCase();
@@ -33,7 +32,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
     setIsModalOpen(false);
   };
 
-  // Detector de Receita Pronta
   useEffect(() => {
     const potWithCompleteRecipe = player.pots.find(pot => {
       if (!pot.recipeCode) return false;
@@ -73,7 +71,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         <h2 className="text-4xl font-kalam text-black">Minha Mesa</h2>
       </div>
 
-      {/* CARROSSEL DE PANELAS */}
       <div className="relative overflow-hidden mb-12">
         <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${activePotIdx * 100}%)` }}>
           {player.pots.map((pot) => {
@@ -131,7 +128,16 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-2xl font-kalam text-black">Ingredientes</h3>
+        <div className="flex items-center gap-3">
+            <h3 className="text-2xl font-kalam text-black">Ingredientes</h3>
+            {/* BOTÃO ADICIONAR AO LADO DO TÍTULO */}
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="w-8 h-8 bg-[#FFCA1B] rounded-full flex items-center justify-center text-black shadow-sm active:scale-95 transition-transform"
+            >
+                <Plus size={16}/>
+            </button>
+        </div>
         <span className="text-[10px] font-bold text-gray-400 uppercase">{player.inventory.length} itens</span>
       </div>
 
@@ -153,7 +159,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
       )}
 
-      {/* BOTÃO ENCERRAR MESA (Agora no final da página) */}
       <div className="mt-12 mb-8 flex justify-center">
           <button 
             onClick={() => setShowExitConfirm(true)}
@@ -163,33 +168,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
           </button>
       </div>
 
-      {/* MODAL DE CONFIRMAÇÃO DE SAÍDA */}
-      {showExitConfirm && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-in fade-in duration-200">
-            <div className="paper-slip w-full max-w-xs rounded-[2rem] p-8 text-center shadow-2xl animate-in zoom-in duration-200">
-                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertTriangle size={32}/>
-                </div>
-                <h3 className="font-kalam text-2xl mb-2">Encerrar tudo?</h3>
-                <p className="text-sm text-gray-500 mb-8">Isso vai apagar o jogo para todos os jogadores. Tem certeza?</p>
-                <div className="flex gap-3">
-                    <button 
-                        onClick={() => setShowExitConfirm(false)}
-                        className="flex-1 py-3 font-bold text-gray-400 uppercase text-xs rounded-xl hover:bg-gray-50"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        onClick={onResetSession}
-                        className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold uppercase text-xs shadow-md"
-                    >
-                        Sim, Encerrar
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
-
+      {/* BOTÃO FLUTUANTE AINDA EXISTE */}
       <button 
         onClick={() => setIsModalOpen(true)}
         className="fixed bottom-28 right-8 w-16 h-16 bg-[#FF3401] text-white rounded-full shadow-2xl flex items-center justify-center btn-watercolor z-30 active:scale-95 transition-transform"
@@ -197,7 +176,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         <Plus size={32} />
       </button>
 
-      {/* MODAL DE BUSCA */}
+      {/* MODAL DE BUSCA COM TEXTO NOVO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-start justify-center pt-24 px-6">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 duration-200">
@@ -213,7 +192,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Busque por nome..."
+                    placeholder="Adicione o nome do ingrediente/receita" // TEXTO NOVO
                     className="w-full bg-gray-50 border border-black/5 rounded-xl py-4 pl-12 pr-4 font-bold outline-none focus:border-[#FFCA1B]"
                 />
             </div>
@@ -239,7 +218,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
       )}
 
-      {/* POP-UP DE RECEITA COMPLETA */}
       {readyPotId !== null && (
          <div className="fixed bottom-24 left-6 right-6 z-[100] animate-in slide-in-from-bottom-10 duration-500">
              <div className="bg-[#588A48] text-white p-6 rounded-[2rem] shadow-2xl flex items-center justify-between border-2 border-white/20">
