@@ -25,7 +25,6 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
   const otherPlayers = players.filter(p => p !== localName);
 
   const handleStartTrade = () => {
-    // REMOVI O BLOQUEIO DE RODADA AQUI
     if (!tradeTarget) return;
 
     if (tradeType === 'coins') {
@@ -56,13 +55,13 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-5xl font-kalam text-black">Meu Banco</h2>
         <div className="bg-[#FFCA1B] px-4 py-2 rounded-full border border-black/5 transform rotate-2">
-            <span className="font-kalam text-xl font-bold">Renda Fixa: $2</span>
+            <span className="font-kalam text-xl font-bold">Renda Fixa: R$ 2</span>
         </div>
       </div>
 
       <div className="paper-slip p-8 rounded-[2.5rem] mb-8 text-center shadow-lg border-b-4 border-black/5">
         <div className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.3em] mb-2">Minha Carteira</div>
-        <div className="text-7xl font-kalam text-black mb-8">$ {player.coins}</div>
+        <div className="text-7xl font-kalam text-black mb-8">R$ {player.coins}</div>
         
         <div className="grid grid-cols-2 gap-4">
           <button 
@@ -85,7 +84,6 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
       <div className="grid grid-cols-2 gap-4 mb-6">
         <button 
           onClick={() => setShowTrade(true)}
-          // REMOVI O DISABLED DO BOTÃO
           className="flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-md bg-white text-black border border-black/5 btn-watercolor"
         >
           <Repeat size={18}/> TROCAR
@@ -159,7 +157,7 @@ const Bank: React.FC<BankProps> = ({ player, log, players, localName, updateBala
             
             <div className="space-y-6">
               <div>
-                <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block mb-3">Escolha o alvo</label>
+                <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block mb-3">Escolha o jogador</label>
                 <div className="grid grid-cols-3 gap-2">
                   {otherPlayers.map(p => (
                     <button 
