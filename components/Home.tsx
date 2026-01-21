@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PlayerData } from '../types';
 import { RECIPES, INGREDIENTS } from '../constants';
-import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2, LogOut, AlertTriangle } from 'lucide-react';
+import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2 } from 'lucide-react';
 
 interface HomeProps {
   player: PlayerData;
@@ -16,7 +16,6 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [readyPotId, setReadyPotId] = useState<number | null>(null);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const filteredOptions = useMemo(() => {
     if (!searchQuery) return [];
@@ -130,12 +129,12 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
             <h3 className="text-2xl font-kalam text-black">Ingredientes</h3>
-            {/* BOTÃO ADICIONAR AO LADO DO TÍTULO */}
+            {/* BOTÃO ADICIONAR NO ESTILO MINI-CARD */}
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="w-8 h-8 bg-[#FFCA1B] rounded-full flex items-center justify-center text-black shadow-sm active:scale-95 transition-transform"
+              className="bg-white border border-black/5 rounded-xl w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#FF3401] shadow-sm active:scale-95 transition-all"
             >
-                <Plus size={16}/>
+                <Plus size={20}/>
             </button>
         </div>
         <span className="text-[10px] font-bold text-gray-400 uppercase">{player.inventory.length} itens</span>
@@ -159,29 +158,13 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
       )}
 
-      <div className="mt-12 mb-8 flex justify-center">
-          <button 
-            onClick={() => setShowExitConfirm(true)}
-            className="flex items-center gap-2 text-red-400 font-bold text-xs uppercase tracking-widest hover:text-red-600 transition-colors px-6 py-3 rounded-full hover:bg-red-50"
-          >
-              <LogOut size={16}/> Encerrar Mesa
-          </button>
-      </div>
-
-      {/* BOTÃO FLUTUANTE AINDA EXISTE */}
-      <button 
-        onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-28 right-8 w-16 h-16 bg-[#FF3401] text-white rounded-full shadow-2xl flex items-center justify-center btn-watercolor z-30 active:scale-95 transition-transform"
-      >
-        <Plus size={32} />
-      </button>
-
-      {/* MODAL DE BUSCA COM TEXTO NOVO */}
+      {/* MODAL DE BUSCA COM TEXTOS ATUALIZADOS */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-start justify-center pt-24 px-6">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 duration-200">
             <div className="flex justify-between items-center mb-4">
-               <h3 className="text-2xl font-kalam text-black">Adicionar</h3>
+               {/* TÍTULO NOVO */}
+               <h3 className="text-xl font-kalam text-black leading-tight">Adicionar receita/ingrediente</h3>
                <button onClick={() => setIsModalOpen(false)} className="text-gray-400"><X size={24}/></button>
             </div>
             
@@ -192,7 +175,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Adicione o nome do ingrediente/receita" // TEXTO NOVO
+                    placeholder="Buscar por nome" // PLACEHOLDER NOVO
                     className="w-full bg-gray-50 border border-black/5 rounded-xl py-4 pl-12 pr-4 font-bold outline-none focus:border-[#FFCA1B]"
                 />
             </div>
