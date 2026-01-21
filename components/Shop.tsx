@@ -15,13 +15,18 @@ interface ShopProps {
 const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, onBuySpecial }) => {
   const [shelfItems, setShelfItems] = useState<Ingredient[]>([]);
   const [isEncomendaOpen, setIsEncomendaOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(''); // Mudei de code para searchQuery
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshCount, setRefreshCount] = useState(3); // Começa com 3 chances
 
-  useEffect(() => { refreshShelf(); }, []);
+  useEffect(() => { refreshShelf(true); }, []);
 
-  const refreshShelf = () => {
+  const refreshShelf = (force = false) => {
+    if (!force && refreshCount <= 0) return; // Trava se acabou as chances
+    
     const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
     setShelfItems(shuffled.slice(0, 4));
+    
+    if (!force) setRefreshCount(prev => prev - 1); // Gasta uma chance
   };
 
   const handleShelfBuy = (ing: Ingredient) => {
@@ -33,14 +38,12 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
     }
   };
 
-  // Busca Inteligente para Encomenda
   const filteredOptions = useMemo(() => {
     if (!searchQuery) return [];
     return INGREDIENTS.filter(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [searchQuery]);
 
   const handleSelectEncomenda = (code: string) => {
-      // Usa a função wrapper passada pelo App (que unifica tudo)
       if (onBuySpecial) {
           onBuySpecial(16, 'Encomenda', code);
       } else {
@@ -54,8 +57,19 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
     <div className="p-6 watercolor-wash min-h-full">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-5xl font-kalam text-black">Lojinha</h2>
-        <button onClick={refreshShelf} className="p-2 text-[#0A9396] transition-colors hover:rotate-180 duration-500">
-          <RefreshCw size={24}/>
+        
+        {/* BOTÃO DE REFRESH COM CONTADOR */}
+        <button 
+            onClick={() => refreshShelf(false)} 
+            disabled={refreshCount === 0}
+            className={`p-2 transition-all flex items-center gap-2 rounded-full border border-transparent ${
+                refreshCount > 0 
+                ? 'text-[#0A9396] hover:bg-[#0A9396]/10 active:scale-90' 
+                : 'text-gray-300 cursor-not-allowed bg-gray-50'
+            }`}
+        >
+          <span className="font-bold text-xs">{refreshCount}x</span>
+          <RefreshCw size={24} className={refreshCount > 0 ? "hover:rotate-180 transition-transform duration-500" : ""}/>
         </button>
       </div>
 
@@ -118,7 +132,6 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
         </div>
       </div>
 
-      {/* MODAL ENCOMENDA COM BUSCA */}
       {isEncomendaOpen && (
         <div className="fixed inset-0 z-[120] flex items-start justify-center pt-24 px-6 bg-black/80 backdrop-blur-sm">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in zoom-in duration-200">
@@ -134,7 +147,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Digite o nome..."
+                    placeholder="Adicione o nome do ingrediente..."
                     className="w-full bg-gray-50 border border-black/5 rounded-xl py-4 pl-12 pr-4 font-bold outline-none focus:border-[#FFCA1B]"
                 />
             </div>
