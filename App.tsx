@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { AppRoute, GameState, PlayerData } from './types';
+import { AppRoute, GameState, PlayerData, Ingredient } from './types'; // <--- Adicionei Ingredient aqui
 import { INGREDIENTS, RECIPES } from './constants';
 import { Home as HomeIcon, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2, RefreshCcw, LogOut, AlertTriangle } from 'lucide-react';
 import { db } from './lib/firebase';
@@ -19,6 +19,8 @@ const App: React.FC = () => {
   });
 
   const [shopRefreshCount, setShopRefreshCount] = useState(3);
+  // NOVO: Estado para guardar os itens da prateleira
+  const [shopShelf, setShopShelf] = useState<Ingredient[]>([]);
 
   const [gameState, setGameState] = useState<GameState>({
       isStarted: false,
@@ -28,6 +30,30 @@ const App: React.FC = () => {
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  // NOVO: Função para sortear a prateleira
+  const handleShopShuffle = useCallback((force = false) => {
+      // Se a prateleira já tem itens e não é forçado, não faz nada (mantém os itens ao trocar de aba)
+      if (!force && shopShelf.length > 0) return; 
+
+      if (!force && shopRefreshCount <= 0) return;
+
+      const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 4);
+      setShopShelf(selected);
+
+      if (!force && shopShelf.length > 0) {
+          setShopRefreshCount(prev => Math.max(0, prev - 1));
+      }
+  }, [shopRefreshCount, shopShelf.length]);
+
+  // Inicializa a prateleira na primeira vez
+  useEffect(() => {
+      if (shopShelf.length === 0) {
+          const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
+          setShopShelf(shuffled.slice(0, 4));
+      }
+  }, []);
 
   const processData = (data: any): GameState => {
     if (!data) return { isStarted: false, players: [], financialLog: [] };
@@ -238,6 +264,12 @@ const App: React.FC = () => {
         inventory: [...p.inventory, code]
       }), `Compra: ${ingredient?.name}`, -cost);
       notify(`Comprou ${ingredient?.name}`);
+      // NOVO: Atualiza a prateleira se comprou algo dela (opcional, mas legal)
+      if (shopShelf.find(s => s.code === code)) {
+          const available = INGREDIENTS.filter(i => !shopShelf.find(s => s.code === i.code));
+          const nextItem = available[Math.floor(Math.random() * available.length)];
+          setShopShelf(prev => prev.map(item => item.code === code ? nextItem : item));
+      }
       return true;
     }
     notify('Saldo insuficiente!', 'error');
@@ -321,7 +353,7 @@ const App: React.FC = () => {
            </div>
            
            <div className="flex items-center gap-3">
-               <span className="text-[#FF3401] font-bold text-lg bg-[#FF3401]/10 px-3 py-1 rounded-lg border border-[#FF3401]/20">
+               <span className="text-[#BA3801] font-bold text-lg bg-[#BA3801]/10 px-3 py-1 rounded-lg border border-[#BA3801]/20">
                    R$ {currentPlayer.coins}
                </span>
                <button 
@@ -363,6 +395,7 @@ const App: React.FC = () => {
                 {route === AppRoute.SHOP && (
                     <Shop 
                         coins={currentPlayer.coins} 
+                        shelfItems={shopShelf} // <--- Passando os itens do App para a Loja
                         onBuy={purchaseIngredient} 
                         onBuySaco={purchaseSacoWrapper} 
                         onBuyEncomenda={purchaseEncomendaWrapper} 
@@ -371,7 +404,7 @@ const App: React.FC = () => {
                         }}
                         updateBalance={updateBalance} 
                         refreshCount={shopRefreshCount}
-                        onRefresh={() => setShopRefreshCount(prev => Math.max(0, prev - 1))}
+                        onRefresh={() => handleShopShuffle()} // <--- Usando a função do App
                     />
                 )}
                 
@@ -391,7 +424,7 @@ const App: React.FC = () => {
             { id: AppRoute.BANK, icon: Landmark, label: 'Banco' },
             { id: AppRoute.COOKBOOK, icon: BookOpen, label: 'Receitas' },
           ].map((item) => (
-            <button key={item.id} onClick={() => setRoute(item.id)} className={`flex flex-col items-center gap-1 ${route === item.id ? 'text-[#FF3401]' : 'text-gray-400'}`}>
+            <button key={item.id} onClick={() => setRoute(item.id)} className={`flex flex-col items-center gap-1 ${route === item.id ? 'text-[#BA3801]' : 'text-gray-400'}`}>
               <item.icon size={26} />
               <span className="text-[10px] font-bold uppercase">{item.label}</span>
             </button>
@@ -429,7 +462,7 @@ const App: React.FC = () => {
       )}
 
       {notification && (
-        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#FF3401] text-white'}`}>
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-[#588A48] text-white' : 'bg-[#BA3801] text-white'}`}>
           {notification.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
           <span className="font-bold text-sm whitespace-nowrap">{notification.message}</span>
         </div>
