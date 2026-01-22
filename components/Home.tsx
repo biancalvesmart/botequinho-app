@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PlayerData } from '../types';
 import { RECIPES, INGREDIENTS } from '../constants';
-import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2 } from 'lucide-react';
+import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2, Utensils, Package } from 'lucide-react';
 
 interface HomeProps {
   player: PlayerData;
@@ -83,8 +83,8 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         <div className="flex items-center gap-3">
             <h3 className="text-2xl font-kalam text-black">Receitas</h3>
             <div className="flex gap-1.5 bg-black/5 px-2 py-1.5 rounded-full">
-               <div className={`w-2 h-2 rounded-full transition-all duration-300 ${activePotIdx === 0 ? 'bg-[#FF3401] w-4' : 'bg-gray-300'}`}></div>
-               <div className={`w-2 h-2 rounded-full transition-all duration-300 ${activePotIdx === 1 ? 'bg-[#FF3401] w-4' : 'bg-gray-300'}`}></div>
+               <div className={`w-2 h-2 rounded-full transition-all duration-300 ${activePotIdx === 0 ? 'bg-[#BA3801] w-4' : 'bg-gray-300'}`}></div>
+               <div className={`w-2 h-2 rounded-full transition-all duration-300 ${activePotIdx === 1 ? 'bg-[#BA3801] w-4' : 'bg-gray-300'}`}></div>
             </div>
         </div>
         <span className="text-[10px] font-bold text-gray-400 uppercase">
@@ -101,10 +101,16 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
               <div key={pot.id} className="min-w-full px-2">
                 <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative">
                   {recipe ? (
-                    <div className="animate-in fade-in duration-500 w-full">
-                      <div className="w-20 h-20 bg-[#FFCA1B]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                          <Flame size={40} className="text-[#FF3401]" />
+                    <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
+                      {/* --- AQUI: MOSTRA A FOTO OU O FOGO --- */}
+                      <div className="w-24 h-24 bg-[#FFCA1B]/20 rounded-full flex items-center justify-center mb-6 overflow-hidden border-2 border-white shadow-sm">
+                          {recipe.image ? (
+                              <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover" />
+                          ) : (
+                              <Flame size={40} className="text-[#BA3801]" />
+                          )}
                       </div>
+                      
                       <h3 className="text-3xl font-kalam text-black mb-1 leading-tight">{recipe.name}</h3>
                       <span className="text-[9px] uppercase font-bold text-gray-400 tracking-widest block mb-8">Cozinhando...</span>
                       
@@ -144,21 +150,19 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
         
         <div className="absolute top-1/2 left-0 right-0 flex justify-between px-1 pointer-events-none">
-            <button onClick={() => setActivePotIdx(0)} className={`pointer-events-auto p-2 ${activePotIdx === 0 ? 'opacity-0' : 'opacity-100'}`}><ChevronLeft/></button>
-            <button onClick={() => setActivePotIdx(1)} className={`pointer-events-auto p-2 ${activePotIdx === 1 ? 'opacity-0' : 'opacity-100'}`}><ChevronRight/></button>
+            <button onClick={() => setActivePotIdx(0)} className={`pointer-events-auto p-2 ${activePotIdx === 0 ? 'opacity-0' : 'opacity-100 text-gray-400'}`}><ChevronLeft/></button>
+            <button onClick={() => setActivePotIdx(1)} className={`pointer-events-auto p-2 ${activePotIdx === 1 ? 'opacity-0' : 'opacity-100 text-gray-400'}`}><ChevronRight/></button>
         </div>
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        {/* TÍTULO LIMPO: SEM O BOTÃO + */}
         <h3 className="text-2xl font-kalam text-black">Ingredientes</h3>
         <span className="text-[10px] font-bold text-gray-400 uppercase">{player.inventory.length} itens</span>
       </div>
 
-      {/* GRID OU ESTADO VAZIO */}
       {player.inventory.length > 0 ? (
         <div className="grid grid-cols-3 gap-3">
-          {/* BOTÃO DE ADICIONAR DENTRO DA GRADE (ESTILO CARD) */}
+          {/* BOTÃO DE ADICIONAR */}
           <button 
             onClick={() => setActiveModalType('ingredient')}
             className="paper-slip p-4 rounded-2xl flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform border-2 border-dashed border-gray-200 hover:border-[#0A9396]/30 group min-h-[100px]"
@@ -169,18 +173,35 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
              <span className="text-[8px] font-bold text-gray-400 uppercase group-hover:text-[#0A9396]">Adicionar</span>
           </button>
 
+          {/* LISTA DE INGREDIENTES COM FOTO */}
           {player.inventory.map((code, idx) => {
             const ing = INGREDIENTS.find(i => i.code === code);
             return (
-              <div key={`${code}-${idx}`} className="paper-slip p-4 rounded-2xl flex flex-col items-center text-center transform hover:rotate-2 transition-transform min-h-[100px] justify-center">
-                <div className="text-lg font-kalam text-[#0A9396] mb-1 leading-none">{ing?.score}</div>
-                <span className="text-[10px] font-bold text-black/70 leading-tight uppercase line-clamp-2">{ing?.name}</span>
+              <div key={`${code}-${idx}`} className="paper-slip p-3 rounded-2xl flex flex-col items-center text-center transform hover:rotate-2 transition-transform min-h-[100px] justify-center relative overflow-hidden">
+                
+                {/* --- AQUI: MOSTRA A FOTO OU O SCORE --- */}
+                <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                    {ing?.image ? (
+                        <img src={ing.image} alt={ing.name} className="w-full h-full object-contain drop-shadow-sm" />
+                    ) : (
+                        <span className="text-lg font-kalam text-[#0A9396] leading-none">{ing?.score}</span>
+                    )}
+                </div>
+
+                <span className="text-[10px] font-bold text-black/70 leading-tight uppercase line-clamp-2 px-1 relative z-10">{ing?.name}</span>
+                
+                {/* Badge pequeno de pontos se tiver imagem */}
+                {ing?.image && (
+                    <span className="absolute top-1 right-1 bg-[#0A9396]/10 text-[#0A9396] text-[8px] font-bold px-1.5 rounded-md">
+                        {ing.score}
+                    </span>
+                )}
               </div>
             );
           })}
         </div>
       ) : (
-        /* --- CESTA VAZIA AGORA É UM CARD GRANDÃO (IGUAL PANELA) --- */
+        /* CARD CESTA VAZIA */
         <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative animate-in zoom-in duration-300">
             <button 
                 onClick={() => setActiveModalType('ingredient')}
@@ -197,7 +218,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
       )}
 
-      {/* FAB FLUTUANTE (MANTIDO POR PRATICIDADE) */}
+      {/* FAB FLUTUANTE */}
       {player.inventory.length > 0 && (
         <button 
             onClick={() => setActiveModalType('ingredient')}
@@ -207,7 +228,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </button>
       )}
 
-      {/* MODAL DE BUSCA */}
+      {/* MODAL DE BUSCA COM FOTOS */}
       {activeModalType && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-start justify-center pt-24 px-6">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 duration-200">
@@ -226,7 +247,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar por nome"
-                    className="w-full bg-gray-50 border border-black/5 rounded-xl py-4 pl-12 pr-4 font-bold outline-none focus:border-[#FFCA1B]"
+                    className="w-full bg-gray-50 border border-black/5 rounded-xl py-4 pl-12 pr-4 font-bold outline-none focus:border-[#BA3801]"
                 />
             </div>
 
@@ -238,11 +259,22 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                     <button
                         key={item.code}
                         onClick={() => handleSelectOption(item.code)}
-                        className="w-full text-left p-4 rounded-xl bg-white border border-black/5 hover:bg-[#FFCA1B]/10 hover:border-[#FFCA1B] transition-colors flex items-center justify-between group"
+                        className="w-full text-left p-3 rounded-xl bg-white border border-black/5 hover:bg-[#BA3801]/10 hover:border-[#BA3801] transition-colors flex items-center justify-between group"
                     >
-                        <span className="font-bold text-black/80">{item.name}</span>
+                        <div className="flex items-center gap-3">
+                            {/* --- MINIATURA NA BUSCA --- */}
+                            {item.image ? (
+                                <img src={item.image} alt="" className="w-8 h-8 object-contain rounded-md" />
+                            ) : (
+                                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${item.type === 'rec' ? 'bg-[#FFCA1B]/20' : 'bg-[#0A9396]/20'}`}>
+                                    {item.type === 'rec' ? <Utensils size={14}/> : <Package size={14}/>}
+                                </div>
+                            )}
+                            <span className="font-bold text-black/80">{item.name}</span>
+                        </div>
+
                         {item.type === 'rec' && (
-                            <span className="bg-[#FFCA1B]/20 text-[#FFCA1B] text-[10px] px-2 py-1 rounded-md font-bold">
+                            <span className="bg-[#FFCA1B]/20 text-[#BA3801] text-[10px] px-2 py-1 rounded-md font-bold">
                                 {item.value} pts
                             </span>
                         )}
