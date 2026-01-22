@@ -102,8 +102,8 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                 <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative">
                   {recipe ? (
                     <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
-                      {/* --- AQUI: MOSTRA A FOTO OU O FOGO --- */}
-                      <div className="w-24 h-24 bg-[#FFCA1B]/20 rounded-full flex items-center justify-center mb-6 overflow-hidden border-2 border-white shadow-sm">
+                      {/* --- AQUI É A MÁGICA: FOTO OU FOGO --- */}
+                      <div className="w-32 h-32 bg-[#FFCA1B]/10 rounded-full flex items-center justify-center mb-6 overflow-hidden border-4 border-white shadow-sm">
                           {recipe.image ? (
                               <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover" />
                           ) : (
@@ -190,7 +190,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
 
                 <span className="text-[10px] font-bold text-black/70 leading-tight uppercase line-clamp-2 px-1 relative z-10">{ing?.name}</span>
                 
-                {/* Badge pequeno de pontos se tiver imagem */}
+                {/* Se tiver imagem, mostra o score pequenininho no canto pra não perder a info */}
                 {ing?.image && (
                     <span className="absolute top-1 right-1 bg-[#0A9396]/10 text-[#0A9396] text-[8px] font-bold px-1.5 rounded-md">
                         {ing.score}
@@ -201,7 +201,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
           })}
         </div>
       ) : (
-        /* CARD CESTA VAZIA */
+        /* CARD CESTA VAZIA (CARD GRANDE) */
         <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative animate-in zoom-in duration-300">
             <button 
                 onClick={() => setActiveModalType('ingredient')}
