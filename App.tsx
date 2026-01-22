@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { AppRoute, GameState, PlayerData, Ingredient } from './types'; // <--- Adicionei Ingredient aqui
+import { AppRoute, GameState, PlayerData, Ingredient } from './types';
 import { INGREDIENTS, RECIPES } from './constants';
 import { Home as HomeIcon, ShoppingBag, Landmark, BookOpen, AlertCircle, CheckCircle2, RefreshCcw, LogOut, AlertTriangle } from 'lucide-react';
 import { db } from './lib/firebase';
@@ -18,8 +18,8 @@ const App: React.FC = () => {
     try { return sessionStorage.getItem('local_player_name') || ''; } catch { return ''; }
   });
 
+  // --- ESTADOS DA LOJA ---
   const [shopRefreshCount, setShopRefreshCount] = useState(3);
-  // NOVO: Estado para guardar os itens da prateleira
   const [shopShelf, setShopShelf] = useState<Ingredient[]>([]);
 
   const [gameState, setGameState] = useState<GameState>({
@@ -31,29 +31,24 @@ const App: React.FC = () => {
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  // NOVO: Função para sortear a prateleira
-  const handleShopShuffle = useCallback((force = false) => {
-      // Se a prateleira já tem itens e não é forçado, não faz nada (mantém os itens ao trocar de aba)
-      if (!force && shopShelf.length > 0) return; 
+  // 1. INICIALIZAÇÃO (Roda apenas UMA vez quando o App abre)
+  useEffect(() => {
+    // Se a prateleira estiver vazia, preenche ela.
+    // O array de dependências vazio [] garante que isso só roda na montagem do App.
+    if (shopShelf.length === 0) {
+        const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
+        setShopShelf(shuffled.slice(0, 4));
+    }
+  }, []); 
 
-      if (!force && shopRefreshCount <= 0) return;
+  // 2. ATUALIZAÇÃO MANUAL (Só roda quando clica no botão)
+  const handleManualRefresh = () => {
+      if (shopRefreshCount <= 0) return;
 
       const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, 4);
-      setShopShelf(selected);
-
-      if (!force && shopShelf.length > 0) {
-          setShopRefreshCount(prev => Math.max(0, prev - 1));
-      }
-  }, [shopRefreshCount, shopShelf.length]);
-
-  // Inicializa a prateleira na primeira vez
-  useEffect(() => {
-      if (shopShelf.length === 0) {
-          const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
-          setShopShelf(shuffled.slice(0, 4));
-      }
-  }, []);
+      setShopShelf(shuffled.slice(0, 4));
+      setShopRefreshCount(prev => Math.max(0, prev - 1));
+  };
 
   const processData = (data: any): GameState => {
     if (!data) return { isStarted: false, players: [], financialLog: [] };
@@ -264,7 +259,8 @@ const App: React.FC = () => {
         inventory: [...p.inventory, code]
       }), `Compra: ${ingredient?.name}`, -cost);
       notify(`Comprou ${ingredient?.name}`);
-      // NOVO: Atualiza a prateleira se comprou algo dela (opcional, mas legal)
+      
+      // Atualiza a prateleira se comprou um item dela
       if (shopShelf.find(s => s.code === code)) {
           const available = INGREDIENTS.filter(i => !shopShelf.find(s => s.code === i.code));
           const nextItem = available[Math.floor(Math.random() * available.length)];
@@ -395,7 +391,7 @@ const App: React.FC = () => {
                 {route === AppRoute.SHOP && (
                     <Shop 
                         coins={currentPlayer.coins} 
-                        shelfItems={shopShelf} // <--- Passando os itens do App para a Loja
+                        shelfItems={shopShelf} // <--- A Loja recebe a lista fixa
                         onBuy={purchaseIngredient} 
                         onBuySaco={purchaseSacoWrapper} 
                         onBuyEncomenda={purchaseEncomendaWrapper} 
@@ -404,7 +400,7 @@ const App: React.FC = () => {
                         }}
                         updateBalance={updateBalance} 
                         refreshCount={shopRefreshCount}
-                        onRefresh={() => handleShopShuffle()} // <--- Usando a função do App
+                        onRefresh={handleManualRefresh} // <--- Apenas esta função atualiza a loja
                     />
                 )}
                 
