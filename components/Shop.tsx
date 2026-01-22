@@ -81,14 +81,23 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
         </h3>
         <div className="grid grid-cols-2 gap-5">
           {shelfItems.map((ing) => (
-            <div key={ing.code} className="paper-slip p-6 rounded-[2rem] flex flex-col items-center group">
-              <div className="w-14 h-14 bg-[#FFCA1B]/10 rounded-full flex items-center justify-center mb-4 border border-[#FFCA1B]/20">
-                <span className="text-[#FFCA1B] font-kalam text-2xl leading-none">{ing.score}</span>
+            <div key={ing.code} className="paper-slip p-6 rounded-[2rem] flex flex-col items-center group relative overflow-hidden">
+              {/* --- LÓGICA DA IMAGEM NA PRATELEIRA --- */}
+              <div className="w-20 h-20 mb-4 flex items-center justify-center">
+                {ing.image ? (
+                    <img src={ing.image} alt={ing.name} className="w-full h-full object-contain drop-shadow-sm transition-transform group-hover:scale-110 duration-300" />
+                ) : (
+                    <div className="w-14 h-14 bg-[#FFCA1B]/10 rounded-full flex items-center justify-center border border-[#FFCA1B]/20">
+                        <span className="text-[#FFCA1B] font-kalam text-2xl leading-none">{ing.score}</span>
+                    </div>
+                )}
               </div>
-              <h4 className="text-[10px] font-bold uppercase text-center mb-5 min-h-[2.5rem] line-clamp-2 px-1 text-black/60 tracking-wider leading-relaxed">{ing.name}</h4>
+              
+              <h4 className="text-[10px] font-bold uppercase text-center mb-5 min-h-[2.5rem] line-clamp-2 px-1 text-black/60 tracking-wider leading-relaxed z-10">{ing.name}</h4>
+              
               <button 
                 onClick={() => handleShelfBuy(ing)}
-                className="w-full bg-[#0A9396] text-white text-[10px] font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 btn-watercolor"
+                className="w-full bg-[#0A9396] text-white text-[10px] font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 btn-watercolor z-10"
               >
                 <Coins size={14}/> PAGAR {ing.score + 2}
               </button>
@@ -114,7 +123,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
           </div>
         </div>
 
-        <div className="bg-[#FF3401] text-white p-8 rounded-[2.5rem] flex items-center gap-6 relative overflow-hidden shadow-2xl">
+        <div className="bg-[#BA3801] text-white p-8 rounded-[2.5rem] flex items-center gap-6 relative overflow-hidden shadow-2xl">
           <Sparkles className="absolute -right-6 -top-6 w-32 h-32 opacity-10 rotate-12" />
           <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center flex-shrink-0">
              <Search size={36} className="text-white" />
@@ -162,10 +171,20 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
                     <button
                         key={item.code}
                         onClick={() => handleSelectEncomenda(item.code)}
-                        className="w-full text-left p-4 rounded-xl bg-white border border-black/5 hover:bg-[#FF3401]/10 hover:border-[#FF3401] transition-colors flex items-center justify-between group"
+                        className="w-full text-left p-3 rounded-xl bg-white border border-black/5 hover:bg-[#BA3801]/10 hover:border-[#BA3801] transition-colors flex items-center justify-between group"
                     >
-                        <span className="font-bold text-black/80">{item.name}</span>
-                        <div className="flex items-center gap-2 text-[#FF3401] opacity-0 group-hover:opacity-100 transition-opacity font-bold text-xs uppercase">
+                        <div className="flex items-center gap-3">
+                            {/* MINIATURA NA BUSCA DA ENCOMENDA */}
+                            {item.image ? (
+                                <img src={item.image} alt="" className="w-8 h-8 object-contain rounded-md" />
+                            ) : (
+                                <div className="w-8 h-8 bg-gray-100 rounded-md flex items-center justify-center font-bold text-[10px] text-gray-400">
+                                    {item.score}
+                                </div>
+                            )}
+                            <span className="font-bold text-black/80">{item.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[#BA3801] opacity-0 group-hover:opacity-100 transition-opacity font-bold text-xs uppercase">
                             <span>R$ 16</span> <Coins size={12}/>
                         </div>
                     </button>
