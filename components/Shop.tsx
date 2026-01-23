@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Ingredient } from '../types';
 import { INGREDIENTS } from '../constants';
 import { Package, Search, Sparkles, Coins, RefreshCw, X } from 'lucide-react';
 
 interface ShopProps {
   coins: number;
+  shelfItems: Ingredient[]; // <--- RECEBE DO APP
   onBuy: (code: string, cost: number) => boolean;
   onBuySaco: (cost: number) => void;
   onBuyEncomenda: (code: string, cost: number) => void;
@@ -14,31 +15,15 @@ interface ShopProps {
   onRefresh: () => void;
 }
 
-const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, onBuySpecial, refreshCount, onRefresh }) => {
-  const [shelfItems, setShelfItems] = useState<Ingredient[]>([]);
+const Shop: React.FC<ShopProps> = ({ coins, shelfItems, onBuy, onBuySaco, onBuyEncomenda, onBuySpecial, refreshCount, onRefresh }) => {
   const [isEncomendaOpen, setIsEncomendaOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => { 
-      if(shelfItems.length === 0) doRefresh(true); 
-  }, []);
-
-  const doRefresh = (force = false) => {
-    if (!force && refreshCount <= 0) return;
-    
-    const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
-    setShelfItems(shuffled.slice(0, 4));
-    
-    if (!force) onRefresh();
-  };
+  // REMOVIDO: useEffect e doRefresh interno (Causavam o bug)
 
   const handleShelfBuy = (ing: Ingredient) => {
     const cost = ing.score + 2;
-    if (onBuy(ing.code, cost)) {
-      const available = INGREDIENTS.filter(i => !shelfItems.find(s => s.code === i.code));
-      const nextItem = available[Math.floor(Math.random() * available.length)];
-      setShelfItems(prev => prev.map(item => item.code === ing.code ? nextItem : item));
-    }
+    onBuy(ing.code, cost); 
   };
 
   const filteredOptions = useMemo(() => {
@@ -62,7 +47,7 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
         <h2 className="text-5xl font-kalam text-black">Lojinha</h2>
         
         <button 
-            onClick={() => doRefresh(false)} 
+            onClick={onRefresh} // Chama a função do App
             disabled={refreshCount === 0}
             className={`p-2 transition-all flex items-center gap-2 rounded-full border border-transparent ${
                 refreshCount > 0 
@@ -80,9 +65,9 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
            <div className="w-1.5 h-1.5 bg-[#FFCA1B] rounded-full"></div> A Prateleira
         </h3>
         <div className="grid grid-cols-2 gap-5">
+          {/* Mapeia os itens recebidos via props */}
           {shelfItems.map((ing) => (
             <div key={ing.code} className="paper-slip p-6 rounded-[2rem] flex flex-col items-center group relative overflow-hidden">
-              {/* --- LÓGICA DA IMAGEM NA PRATELEIRA --- */}
               <div className="w-20 h-20 mb-4 flex items-center justify-center">
                 {ing.image ? (
                     <img src={ing.image} alt={ing.name} className="w-full h-full object-contain drop-shadow-sm transition-transform group-hover:scale-110 duration-300" />
@@ -174,7 +159,6 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
                         className="w-full text-left p-3 rounded-xl bg-white border border-black/5 hover:bg-[#BA3801]/10 hover:border-[#BA3801] transition-colors flex items-center justify-between group"
                     >
                         <div className="flex items-center gap-3">
-                            {/* MINIATURA NA BUSCA DA ENCOMENDA */}
                             {item.image ? (
                                 <img src={item.image} alt="" className="w-8 h-8 object-contain rounded-md" />
                             ) : (
@@ -189,9 +173,6 @@ const Shop: React.FC<ShopProps> = ({ coins, onBuy, onBuySaco, onBuyEncomenda, on
                         </div>
                     </button>
                 ))}
-                {!searchQuery && (
-                    <p className="text-center text-gray-300 text-[10px] uppercase font-bold py-2">Busque para encomendar</p>
-                )}
             </div>
           </div>
         </div>
