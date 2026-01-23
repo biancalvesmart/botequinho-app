@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { SESSION_CODE } from '../constants';
 import { ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react';
 
-// 👇 IMPORTANDO AS NOVAS IMAGENS
 import imgLogo from '../assets/idvisual/Logotipo.png';
 import imgFundo from '../assets/idvisual/FundoLobby.png';
 
@@ -14,7 +13,7 @@ interface LobbyProps {
   currentName: string;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, players = [], currentName }) => {
+const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players = [], currentName }) => {
   const [step, setStep] = useState<'logo' | 'code' | 'name' | 'waiting'>('logo');
   const [inputCode, setInputCode] = useState('');
   const [playerName, setPlayerName] = useState('');
@@ -50,23 +49,23 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, players = [], currentNam
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center px-8 py-12 text-center overflow-hidden">
       
-      {/* --- FUNDO COM IMAGEM E TRANSPARÊNCIA --- */}
+      {/* --- FUNDO CORRIGIDO (FIXO E 100VW/100VH) --- */}
       <div 
-        className="absolute inset-0 z-0"
+        className="fixed top-0 left-0 w-screen h-screen z-0 pointer-events-none"
         style={{
             backgroundImage: `url('${imgFundo}')`,
-            backgroundSize: 'cover',
+            backgroundSize: '100% 100%', // Estica para caber tudo exato
             backgroundPosition: 'center',
-            opacity: 0.4, // 60% de transparência
+            backgroundRepeat: 'no-repeat',
+            opacity: 0.4,
         }}
       />
 
-      {/* --- CONTEÚDO (Fica por cima do fundo) --- */}
+      {/* --- CONTEÚDO --- */}
       <div className="relative z-10 w-full max-w-md flex flex-col items-center">
         
         {step === 'logo' && (
           <div className="animate-in fade-in zoom-in duration-1000 flex flex-col items-center w-full">
-            {/* SUBSTITUIÇÃO DO ÍCONE E TÍTULO PELA LOGO */}
             <img 
                 src={imgLogo} 
                 alt="Botequinho" 
