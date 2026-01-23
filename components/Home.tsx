@@ -231,15 +231,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </div>
       )}
 
-      {/* FAB FLUTUANTE */}
-      {player.inventory.length > 0 && (
-        <button 
-            onClick={() => setActiveModalType('ingredient')}
-            className="fixed bottom-28 right-8 w-16 h-16 bg-[#0A9396] text-white rounded-full shadow-2xl flex items-center justify-center btn-watercolor z-30 active:scale-95 transition-transform"
-        >
-            <Plus size={32} />
-        </button>
-      )}
+      {/* FAB FLUTUANTE REMOVIDO DAQUI */}
 
       {/* MODAL DE BUSCA (Mantido igual) */}
       {activeModalType && (
