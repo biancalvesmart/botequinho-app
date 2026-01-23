@@ -49,13 +49,13 @@ const Lobby: React.FC<LobbyProps> = ({ onJoin, onStart, onReset, players = [], c
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center px-8 py-12 text-center overflow-hidden">
       
-      {/* --- FUNDO CORRIGIDO (FIXO E 100VW/100VH) --- */}
+      {/* --- FUNDO AJUSTADO: 'cover' PARA NÃO DEFORMAR --- */}
       <div 
         className="fixed top-0 left-0 w-screen h-screen z-0 pointer-events-none"
         style={{
             backgroundImage: `url('${imgFundo}')`,
-            backgroundSize: '100% 100%', // Estica para caber tudo exato
-            backgroundPosition: 'center',
+            backgroundSize: 'cover', // Garante que a imagem cubra tudo SEM distorcer
+            backgroundPosition: 'center center', // Centraliza a imagem
             backgroundRepeat: 'no-repeat',
             opacity: 0.4,
         }}
