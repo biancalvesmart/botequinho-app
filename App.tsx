@@ -33,8 +33,6 @@ const App: React.FC = () => {
 
   // 1. INICIALIZAÇÃO (Roda apenas UMA vez quando o App abre)
   useEffect(() => {
-    // Se a prateleira estiver vazia, preenche ela.
-    // O array de dependências vazio [] garante que isso só roda na montagem do App.
     if (shopShelf.length === 0) {
         const shuffled = [...INGREDIENTS].sort(() => 0.5 - Math.random());
         setShopShelf(shuffled.slice(0, 4));
@@ -391,16 +389,21 @@ const App: React.FC = () => {
                 {route === AppRoute.SHOP && (
                     <Shop 
                         coins={currentPlayer.coins} 
-                        shelfItems={shopShelf} // <--- A Loja recebe a lista fixa
+                        shelfItems={shopShelf} 
                         onBuy={purchaseIngredient} 
                         onBuySaco={purchaseSacoWrapper} 
                         onBuyEncomenda={purchaseEncomendaWrapper} 
-                        onBuySpecial={(cost, type) => {
-                            if(type === 'Saco') purchaseSacoWrapper(cost);
+                        
+                        // --- AQUI ESTAVA O ERRO, AGORA CORRIGIDO ---
+                        onBuySpecial={(cost, type, data) => {
+                            if (type === 'Saco') purchaseSacoWrapper(cost);
+                            if (type === 'Encomenda' && data) purchaseEncomendaWrapper(data, cost);
                         }}
+                        // -------------------------------------------
+                        
                         updateBalance={updateBalance} 
                         refreshCount={shopRefreshCount}
-                        onRefresh={handleManualRefresh} // <--- Apenas esta função atualiza a loja
+                        onRefresh={handleManualRefresh} 
                     />
                 )}
                 
