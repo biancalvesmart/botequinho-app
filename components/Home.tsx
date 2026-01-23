@@ -3,7 +3,7 @@ import { PlayerData } from '../types';
 import { RECIPES, INGREDIENTS } from '../constants';
 import { Flame, Plus, ChevronLeft, ChevronRight, X, Search, CheckCircle2, Utensils, Package } from 'lucide-react';
 
-// 👇 IMPORTANDO AS NOVAS ILUSTRAÇÕES
+// 👇 NOVAS ILUSTRAÇÕES DE ESTADOS VAZIOS
 import imgPanelaVazia from '../assets/idvisual/PanelaVazia.png';
 import imgCestaVazia from '../assets/idvisual/CestaVazia.png';
 
@@ -106,7 +106,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                 <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[340px] justify-center text-center relative">
                   {recipe ? (
                     <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
-                      {/* FOTO OU FOGO (Se tiver receita) */}
+                      {/* FOTO OU FOGO */}
                       <div className="w-32 h-32 bg-[#FFCA1B]/10 rounded-full flex items-center justify-center mb-6 overflow-hidden border-4 border-white shadow-sm">
                           {recipe.image ? (
                               <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover" />
@@ -134,23 +134,24 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
                       </div>
                     </div>
                   ) : (
-                    // --- ESTADO DE PANELA VAZIA COM ILUSTRAÇÃO ---
+                    // --- NOVA ILUSTRAÇÃO PANELA VAZIA ---
                     <button 
                       onClick={() => setActiveModalType('recipe')}
-                      className="w-full flex flex-col items-center justify-center opacity-80 hover:opacity-100 transition-all group relative"
+                      className="w-full flex flex-col items-center justify-center opacity-90 hover:opacity-100 transition-all group relative"
                     >
-                        <div className="w-40 h-40 mb-2 relative flex items-center justify-center">
+                        {/* Imagem da Panela */}
+                        <div className="w-40 h-40 mb-4 relative flex items-center justify-center">
                            <img src={imgPanelaVazia} alt="Panela Vazia" className="w-full h-full object-contain drop-shadow-sm" />
                            
-                           {/* Botão + sobreposto na imagem */}
-                           <div className="absolute bottom-2 right-4 w-10 h-10 bg-[#FFCA1B] rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform border border-white/50">
-                             <Plus size={20} className="text-black"/>
+                           {/* Botão + Flutuante */}
+                           <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-[#FFCA1B] rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform border-4 border-white">
+                             <Plus size={24} className="text-black"/>
                            </div>
                         </div>
 
-                        <p className="font-kalam text-xl text-gray-400 group-hover:text-black transition-colors">Panela vazia...</p>
-                        <span className="mt-2 text-[10px] font-bold uppercase tracking-widest text-gray-300 group-hover:text-[#BA3801] transition-colors">
-                          ADICIONAR RECEITA
+                        <p className="font-kalam text-2xl text-gray-400 group-hover:text-black transition-colors mt-2">Panela vazia...</p>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#BA3801] mt-1 opacity-60 group-hover:opacity-100">
+                          Toque para cozinhar
                         </span>
                     </button>
                   )}
@@ -173,7 +174,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
 
       {player.inventory.length > 0 ? (
         <div className="grid grid-cols-3 gap-3">
-          {/* BOTÃO DE ADICIONAR (PEQUENO NA GRADE) */}
+          {/* BOTÃO DE ADICIONAR PEQUENO */}
           <button 
             onClick={() => setActiveModalType('ingredient')}
             className="paper-slip p-4 rounded-2xl flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform border-2 border-dashed border-gray-200 hover:border-[#0A9396]/30 group min-h-[100px]"
@@ -207,30 +208,30 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
           })}
         </div>
       ) : (
-        /* --- CARD CESTA VAZIA COM ILUSTRAÇÃO (GRANDE) --- */
+        /* --- NOVA ILUSTRAÇÃO CESTA VAZIA (CARD GRANDE) --- */
         <div className="paper-slip p-8 rounded-[3rem] border border-black/5 flex flex-col items-center min-h-[320px] justify-center text-center relative animate-in zoom-in duration-300">
             <button 
                 onClick={() => setActiveModalType('ingredient')}
-                className="w-full flex flex-col items-center justify-center opacity-80 hover:opacity-100 transition-all group relative"
+                className="w-full flex flex-col items-center justify-center opacity-90 hover:opacity-100 transition-all group relative"
             >
-                <div className="w-40 h-40 mb-2 relative flex items-center justify-center">
+                <div className="w-40 h-40 mb-4 relative flex items-center justify-center">
                     <img src={imgCestaVazia} alt="Cesta Vazia" className="w-full h-full object-contain drop-shadow-sm" />
                     
-                    {/* Botão + sobreposto na imagem */}
-                    <div className="absolute bottom-2 right-4 w-10 h-10 bg-[#0A9396] rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform border border-white/50">
-                       <Plus size={20} className="text-white"/>
+                    {/* Botão + Flutuante */}
+                    <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-[#0A9396] rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform border-4 border-white">
+                       <Plus size={24} className="text-white"/>
                     </div>
                 </div>
 
-                <p className="font-kalam text-xl text-gray-400 group-hover:text-black transition-colors">Cesta vazia...</p>
-                <span className="mt-2 text-[10px] font-bold uppercase tracking-widest text-gray-300 group-hover:text-[#0A9396] transition-colors">
-                    ADICIONAR INGREDIENTE
+                <p className="font-kalam text-2xl text-gray-400 group-hover:text-black transition-colors mt-2">Cesta vazia...</p>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#0A9396] mt-1 opacity-60 group-hover:opacity-100">
+                    Toque para adicionar
                 </span>
             </button>
         </div>
       )}
 
-      {/* FAB FLUTUANTE (MANTIDO) */}
+      {/* FAB FLUTUANTE */}
       {player.inventory.length > 0 && (
         <button 
             onClick={() => setActiveModalType('ingredient')}
@@ -240,7 +241,7 @@ const Home: React.FC<HomeProps> = ({ player, onDeliver, onGiveUp, onAddCode, onR
         </button>
       )}
 
-      {/* MODAL DE BUSCA COM FOTOS (MANTIDO) */}
+      {/* MODAL DE BUSCA (Mantido igual) */}
       {activeModalType && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-start justify-center pt-24 px-6">
           <div className="paper-slip w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 duration-200">
