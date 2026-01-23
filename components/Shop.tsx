@@ -1,11 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { Ingredient } from '../types';
 import { INGREDIENTS } from '../constants';
-import { Package, Search, Sparkles, Coins, RefreshCw, X } from 'lucide-react';
+import { Search, Sparkles, Coins, RefreshCw, X } from 'lucide-react'; // Removi o Package pois vamos usar imagem
+
+// 👇 1. IMPORTANDO AS NOVAS IMAGENS
+import imgSaco from '../assets/idvisual/SacoSurpresa.png';
+import imgEncomenda from '../assets/idvisual/CaixasEncomenda.png';
 
 interface ShopProps {
   coins: number;
-  shelfItems: Ingredient[]; // <--- RECEBE DO APP
+  shelfItems: Ingredient[];
   onBuy: (code: string, cost: number) => boolean;
   onBuySaco: (cost: number) => void;
   onBuyEncomenda: (code: string, cost: number) => void;
@@ -18,8 +22,6 @@ interface ShopProps {
 const Shop: React.FC<ShopProps> = ({ coins, shelfItems, onBuy, onBuySaco, onBuyEncomenda, onBuySpecial, refreshCount, onRefresh }) => {
   const [isEncomendaOpen, setIsEncomendaOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // REMOVIDO: useEffect e doRefresh interno (Causavam o bug)
 
   const handleShelfBuy = (ing: Ingredient) => {
     const cost = ing.score + 2;
@@ -47,7 +49,7 @@ const Shop: React.FC<ShopProps> = ({ coins, shelfItems, onBuy, onBuySaco, onBuyE
         <h2 className="text-5xl font-kalam text-black">Lojinha</h2>
         
         <button 
-            onClick={onRefresh} // Chama a função do App
+            onClick={onRefresh}
             disabled={refreshCount === 0}
             className={`p-2 transition-all flex items-center gap-2 rounded-full border border-transparent ${
                 refreshCount > 0 
@@ -65,7 +67,6 @@ const Shop: React.FC<ShopProps> = ({ coins, shelfItems, onBuy, onBuySaco, onBuyE
            <div className="w-1.5 h-1.5 bg-[#FFCA1B] rounded-full"></div> A Prateleira
         </h3>
         <div className="grid grid-cols-2 gap-5">
-          {/* Mapeia os itens recebidos via props */}
           {shelfItems.map((ing) => (
             <div key={ing.code} className="paper-slip p-6 rounded-[2rem] flex flex-col items-center group relative overflow-hidden">
               <div className="w-20 h-20 mb-4 flex items-center justify-center">
@@ -92,10 +93,13 @@ const Shop: React.FC<ShopProps> = ({ coins, shelfItems, onBuy, onBuySaco, onBuyE
       </div>
 
       <div className="space-y-6">
-        <div className="paper-slip p-8 rounded-[2.5rem] border border-[#FFCA1B]/20 flex items-center gap-6">
-          <div className="w-20 h-20 bg-[#FFCA1B]/10 rounded-3xl flex items-center justify-center flex-shrink-0">
-             <Package size={36} className="text-[#FFCA1B]" />
+        {/* === SACO SURPRESA COM IMAGEM === */}
+        <div className="paper-slip p-6 rounded-[2.5rem] border border-[#FFCA1B]/20 flex items-center gap-4">
+          {/* Substituí o ícone pela imagem */}
+          <div className="w-24 h-24 flex-shrink-0 -ml-2">
+             <img src={imgSaco} alt="Saco Surpresa" className="w-full h-full object-contain drop-shadow-md" />
           </div>
+          
           <div className="flex-1">
             <h3 className="font-kalam text-2xl text-black leading-tight">Saco Surpresa</h3>
             <p className="text-[9px] text-gray-400 mb-4 font-bold uppercase tracking-widest">Item aleatório</p>
@@ -108,11 +112,15 @@ const Shop: React.FC<ShopProps> = ({ coins, shelfItems, onBuy, onBuySaco, onBuyE
           </div>
         </div>
 
-        <div className="bg-[#BA3801] text-white p-8 rounded-[2.5rem] flex items-center gap-6 relative overflow-hidden shadow-2xl">
+        {/* === ENCOMENDA COM IMAGEM === */}
+        <div className="bg-[#BA3801] text-white p-6 rounded-[2.5rem] flex items-center gap-4 relative overflow-hidden shadow-2xl">
           <Sparkles className="absolute -right-6 -top-6 w-32 h-32 opacity-10 rotate-12" />
-          <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center flex-shrink-0">
-             <Search size={36} className="text-white" />
+          
+          {/* Substituí o ícone pela imagem */}
+          <div className="w-24 h-24 flex-shrink-0 -ml-2 relative z-10">
+             <img src={imgEncomenda} alt="Encomenda" className="w-full h-full object-contain drop-shadow-md" />
           </div>
+
           <div className="flex-1 relative z-10">
             <h3 className="font-kalam text-2xl text-white leading-tight">A Encomenda</h3>
             <p className="text-[9px] text-white/60 mb-4 font-bold uppercase tracking-widest">Escolha seu item</p>
